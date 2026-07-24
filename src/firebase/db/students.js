@@ -100,6 +100,31 @@ export async function getStudentsBySchool(schoolId) {
 }
 
 /**
+ * Fetch all students for a specific class in a school
+ */
+export async function getStudentsByClass(schoolId, classId) {
+  try {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('schoolId', '==', schoolId),
+      where('classId', '==', classId)
+    );
+    const snapshot = await getDocs(q);
+    const students = [];
+    snapshot.forEach((d) => students.push({ id: d.id, ...d.data() }));
+    
+    // Sort client-side by rollNumber or name
+    return students.sort((a, b) => {
+      return (a.rollNumber || '').localeCompare(b.rollNumber || '');
+    });
+  } catch (error) {
+    console.error('Error fetching students by class:', error);
+    return [];
+  }
+}
+
+
+/**
  * Fetch a single student by ID
  */
 export async function getStudentById(studentId) {
