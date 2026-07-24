@@ -20,7 +20,7 @@ export default function Badge({
 
   return (
     <span className={clsx(styles.badge, variantClass, className)} {...props}>
-      {Icon && <Icon size={12} />}
+      {Icon && <Icon size={12} aria-hidden="true" />}
       <span>{children}</span>
     </span>
   );

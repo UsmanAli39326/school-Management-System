@@ -14,6 +14,7 @@ export default function Input({
   ...props
 }) {
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const errorId = inputId ? `${inputId}-error` : undefined;
 
   return (
     <div className={styles.fieldGroup}>
@@ -24,7 +25,7 @@ export default function Input({
       )}
       <div className={styles.inputWrapper}>
         {Icon && (
-          <span className={styles.inputIcon}>
+          <span className={styles.inputIcon} aria-hidden="true">
             <Icon size={18} />
           </span>
         )}
@@ -37,10 +38,16 @@ export default function Input({
             error && styles.inputError,
             className
           )}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? errorId : undefined}
           {...props}
         />
       </div>
-      {error && <span className={styles.errorMessage}>{error}</span>}
+      {error && (
+        <span id={errorId} className={styles.errorMessage} role="alert">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

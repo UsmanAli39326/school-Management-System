@@ -28,12 +28,13 @@ export default function Button({
       type={type}
       className={clsx(styles.btn, variantClass, className)}
       disabled={disabled || isLoading}
+      aria-busy={isLoading ? 'true' : undefined}
       {...props}
     >
       {isLoading ? (
-        <Loader2 className="animate-spin" size={18} />
+        <Loader2 className="animate-spin" size={18} aria-hidden="true" />
       ) : Icon ? (
-        <Icon size={18} />
+        <Icon size={18} aria-hidden="true" />
       ) : null}
       <span>{children}</span>
     </button>
