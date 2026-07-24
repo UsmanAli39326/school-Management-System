@@ -340,7 +340,7 @@ export default function StudentProfilePage({ params }) {
               </div>
             </Card>
           </div>
-        ) : (
+        ) : activeTab === 'LEDGER' ? (
           <Card>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <DollarSign size={20} color="var(--primary-color)" /> Fee Ledger
