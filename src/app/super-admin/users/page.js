@@ -9,6 +9,7 @@ import Modal from '@/components/common/Modal';
 import { getAllSchools } from '@/firebase/db/schools';
 import { getAllUsers, createUserProfile, updateUserStatus } from '@/firebase/db/users';
 import { logActivity } from '@/firebase/db/logs';
+import { auth } from '@/firebase/config';
 import { Users, UserPlus, Search, Lock, Unlock, Mail, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function UserProvisioningPage() {
@@ -70,15 +71,22 @@ export default function UserProvisioningPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Generate local UID for provisioned account
-      const uid = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      if (!auth.currentUser) {
+        throw new Error('Not authenticated');
+      }
+      const idToken = await auth.currentUser.getIdToken();
 
-      // 2. Set Custom Claims via Server API Route
-      const res = await fetch('/api/auth/set-custom-claims', {
+      // 1. Create the user and set claims via Server API Route
+      const res = await fetch('/api/auth/create-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({
-          uid,
+          email: formData.email,
+          password: formData.password,
+          displayName: formData.displayName,
           role: formData.role,
           schoolId: formData.schoolId
         })
@@ -86,10 +94,12 @@ export default function UserProvisioningPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.warn('Custom claim warning:', errorData.error);
+        throw new Error(errorData.error || 'Failed to create user');
       }
 
-      // 3. Create User Document in Firestore
+      const { uid } = await res.json();
+
+      // 2. Create User Document in Firestore
       await createUserProfile(uid, {
         displayName: formData.displayName,
         email: formData.email,

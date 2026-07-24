@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Function to check if user is a SUPER_ADMIN
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.role == 'SUPER_ADMIN';
+    }
+
+    // Function to check if user belongs to the same school as the document
+    function isSameSchool(resourceData) {
+      return request.auth != null && request.auth.token.schoolId == resourceData.schoolId;
+    }
+
+    // Function to check if user is at least a SCHOOL_ADMIN for the given school
+    function isSchoolAdmin(resourceData) {
+      return isSameSchool(resourceData) && request.auth.token.role == 'SCHOOL_ADMIN';
+    }
+
+    // Global rule: Super Admins can read/write everything
+    match /{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Schools collection
+    match /schools/{schoolId} {
+      // Anyone logged in can read a school if they belong to it
+      allow read: if request.auth != null && request.auth.token.schoolId == schoolId;
+      // Only SCHOOL_ADMIN of that school can update it
+      allow update: if request.auth != null && request.auth.token.schoolId == schoolId && request.auth.token.role == 'SCHOOL_ADMIN';
+      allow create, delete: if isSuperAdmin();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Users in the same school can read other users in that school
+      allow read: if isSameSchool(resource.data);
+      // Only School Admins can update/create users for their school
+      allow create, update, delete: if isSchoolAdmin(resource.data) || isSchoolAdmin(request.resource.data);
+      // Wait, we also allow setup-account to create profile initially.
+      // During setup, the user has NO claims yet. So we must allow them to create their own profile.
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Activity Logs
+    match /activity_logs/{logId} {
+      allow read: if isSameSchool(resource.data);
+      // Usually only backend creates logs, but if client creates them, they must belong to the school
+      allow create: if isSameSchool(request.resource.data) || request.auth.uid == request.resource.data.userId;
+    }
+
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read: if isSameSchool(resource.data);
+      allow create, update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'ACCOUNTANT');
+    }
+
+    // Students
+    match /students/{studentId} {
+      allow read: if isSameSchool(resource.data);
+      allow create, update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'RECEPTIONIST');
+    }
+
+    // Default rule for all other collections to enforce tenant isolation
+    match /{collectionName}/{docId} {
+      allow read, write: if isSameSchool(resource.data);
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, documentId } from 'firebase/firestore';
 import { db } from '../config';
 
 const INVOICES_COL = 'invoices';
@@ -30,16 +30,21 @@ export async function getDefaulters(schoolId) {
       duesByStudent[inv.studentId].invoices.push(inv);
     });
 
-    // 2. Fetch student details for those student IDs
+    // 2. Fetch student details for those student IDs in batches of 10
     const studentIds = Object.keys(duesByStudent);
-    // Note: Firestore 'in' query supports max 10 items. We fetch all active students and filter locally to avoid complex batching.
-    const q2 = query(collection(db, STUDENTS_COL), where('schoolId', '==', schoolId));
-    const stuSnapshot = await getDocs(q2);
-    
     const studentsMap = {};
-    stuSnapshot.forEach(doc => {
-      studentsMap[doc.id] = doc.data();
-    });
+
+    // Firestore 'in' query max 10 items.
+    for (let i = 0; i < studentIds.length; i += 10) {
+      const batchIds = studentIds.slice(i, i + 10);
+      if (batchIds.length > 0) {
+        const q2 = query(collection(db, STUDENTS_COL), where(documentId(), 'in', batchIds));
+        const stuSnapshot = await getDocs(q2);
+        stuSnapshot.forEach(doc => {
+          studentsMap[doc.id] = doc.data();
+        });
+      }
+    }
     
     // 3. Merge data
     const defaulters = [];

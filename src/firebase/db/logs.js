@@ -43,13 +43,17 @@ export async function logActivity(action, details, userId = 'system', userName =
  */
 export async function getActivityLogs(maxLogs = 50) {
   try {
-    const q = query(collection(db, COLLECTION_NAME));
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      orderBy('timestamp', 'desc'),
+      limit(maxLogs)
+    );
     const snapshot = await getDocs(q);
     const logs = [];
     snapshot.forEach((d) => {
       logs.push({ id: d.id, ...d.data() });
     });
-    return logs.sort((a, b) => (b.createdAtStr || '').localeCompare(a.createdAtStr || ''));
+    return logs;
   } catch (error) {
     console.error('Error fetching activity logs:', error);
     return [];

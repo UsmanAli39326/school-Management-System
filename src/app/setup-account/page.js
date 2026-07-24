@@ -48,6 +48,29 @@ export default function SetupAccountPage() {
         status: 'ACTIVE'
       });
 
+      // 3.5. Update Custom Claims by calling our API with the user's token
+      const idToken = await user.getIdToken();
+      const claimsRes = await fetch('/api/auth/set-custom-claims', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          role: invite.role,
+          schoolId: invite.schoolId
+        })
+      });
+
+      if (!claimsRes.ok) {
+        const errorData = await claimsRes.json();
+        console.warn('Failed to set custom claims:', errorData.error);
+        // We might choose to fail the whole registration or let it pass with a warning,
+        // but typically failing the registration might leave the auth user in an incomplete state.
+        // For now we will just log a warning.
+      }
+
       // 4. Mark the invitation as ACCEPTED
       await acceptInvitation(email);
 

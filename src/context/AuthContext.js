@@ -36,15 +36,34 @@ export function AuthContextProvider({ children }) {
         setRole(userRole);
         setSchoolId(userSchoolId);
 
-        const profile = await getUserProfile(user.uid);
-        setUserProfile(profile);
+        // Profile Caching
+        const cachedProfileKey = `userProfile_${user.uid}`;
+        const cachedProfile = sessionStorage.getItem(cachedProfileKey);
+        if (cachedProfile) {
+          setUserProfile(JSON.parse(cachedProfile));
+        } else {
+          const profile = await getUserProfile(user.uid);
+          setUserProfile(profile);
+          sessionStorage.setItem(cachedProfileKey, JSON.stringify(profile));
+        }
 
-        // Apply Dynamic Branding
+        // Apply Dynamic Branding with Caching
         if (userSchoolId && userSchoolId !== 'GLOBAL') {
-          const school = await getSchoolById(userSchoolId);
-          if (school && school.theme) {
-            document.documentElement.style.setProperty('--primary-color', school.theme.primaryColor || '#4f46e5');
-            document.documentElement.style.setProperty('--secondary-accent', school.theme.secondaryColor || '#0ea5e9');
+          const cachedThemeKey = `schoolTheme_${userSchoolId}`;
+          const cachedTheme = sessionStorage.getItem(cachedThemeKey);
+          let theme = cachedTheme ? JSON.parse(cachedTheme) : null;
+          
+          if (!theme) {
+            const school = await getSchoolById(userSchoolId);
+            if (school && school.theme) {
+              theme = school.theme;
+              sessionStorage.setItem(cachedThemeKey, JSON.stringify(theme));
+            }
+          }
+
+          if (theme) {
+            document.documentElement.style.setProperty('--primary-color', theme.primaryColor || '#4f46e5');
+            document.documentElement.style.setProperty('--secondary-accent', theme.secondaryColor || '#0ea5e9');
           }
         }
       } else {
@@ -52,6 +71,7 @@ export function AuthContextProvider({ children }) {
         setUserProfile(null);
         setRole(null);
         setSchoolId(null);
+        sessionStorage.clear();
 
         // Reset Branding
         document.documentElement.style.removeProperty('--primary-color');

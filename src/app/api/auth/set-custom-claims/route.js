@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminAuth } from '@/firebase/admin';
+import { adminAuth, adminDb } from '@/firebase/admin';
 
 export async function POST(request) {
   try {
@@ -17,6 +17,60 @@ export async function POST(request) {
         { error: 'Firebase Admin Auth is not configured on server' },
         { status: 500 }
       );
+    }
+
+    // 1. Authenticate the caller
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Missing or invalid Authorization header' },
+        { status: 401 }
+      );
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (err) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Invalid ID token' },
+        { status: 401 }
+      );
+    }
+
+    // 2. Authorize the caller
+    if (decodedToken.role !== 'SUPER_ADMIN') {
+      // If not SUPER_ADMIN, check if it is a self-registration setup
+      if (decodedToken.uid === uid) {
+        // Fetch the invitation to verify the role and schoolId
+        const userEmail = decodedToken.email;
+        const invitesSnapshot = await adminDb.collection('staff_invitations')
+          .where('email', '==', userEmail)
+          .where('status', 'in', ['PENDING', 'ACCEPTED'])
+          .limit(1)
+          .get();
+
+        if (invitesSnapshot.empty) {
+          return NextResponse.json(
+            { error: 'Forbidden: No valid invitation found for self-registration' },
+            { status: 403 }
+          );
+        }
+
+        const invite = invitesSnapshot.docs[0].data();
+        if (invite.role !== role || invite.schoolId !== schoolId) {
+          return NextResponse.json(
+            { error: 'Forbidden: Requested claims do not match invitation' },
+            { status: 403 }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { error: 'Forbidden: Insufficient privileges' },
+          { status: 403 }
+        );
+      }
     }
 
     const validRoles = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST', 'TEACHER'];

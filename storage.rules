@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.role == 'SUPER_ADMIN';
+    }
+
+    match /{schoolId}/{allPaths=**} {
+      allow read: if isSuperAdmin() || (request.auth != null && request.auth.token.schoolId == schoolId);
+      allow write: if isSuperAdmin() || (request.auth != null && request.auth.token.schoolId == schoolId && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'TEACHER' || request.auth.token.role == 'RECEPTIONIST'));
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}
