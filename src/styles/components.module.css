@@ -5,32 +5,35 @@
   justify-content: center;
   gap: 0.5rem;
   font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem; /* softer corners */
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-normal);
   outline: none;
   white-space: nowrap;
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .btnPrimary {
-  background: var(--brand-gradient);
+  background: var(--primary-color);
   color: #ffffff;
-  box-shadow: var(--shadow-sm);
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: var(--brand-gradient-hover);
+  background: var(--primary-hover);
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
+}
+.btnPrimary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .btnSecondary {
@@ -52,7 +55,7 @@
 
 .btnOutline:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: var(--text-muted);
+  border-color: var(--ink-300);
 }
 
 .btnDanger {
@@ -61,7 +64,7 @@
 }
 
 .btnDanger:hover:not(:disabled) {
-  background: #dc2626;
+  background: #8f1f19;
 }
 
 /* Input & Form Control Styles */
@@ -113,7 +116,7 @@
 
 .input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 .inputError {
@@ -129,16 +132,25 @@
 /* Card Styles */
 .card {
   background-color: var(--surface-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--surface-border);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
+  border-radius: 1rem; /* softer corners */
+  padding: 2rem;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  transition: all var(--transition-normal);
 }
 
 .cardHover:hover {
+  border-color: rgba(203, 213, 225, 0.9); /* ink-300 transparent equivalent */
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+}
+
+/* Solid 3px top rule in the school's brand color -- the signature motif,
+   used instead of gradient washes to give stat/feature cards presence */
+.cardRule {
+  border-top: 3px solid var(--primary-color);
 }
 
 /* Badge Styles */
@@ -202,6 +214,7 @@
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
