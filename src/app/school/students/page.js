@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
+import Select from '@/components/common/Select';
 import { useAuth } from '@/hooks/useAuth';
 import { getStudentsBySchool } from '@/firebase/db/students';
 import { getClasses } from '@/firebase/db/academic';
@@ -117,28 +118,26 @@ export default function StudentRecordsPage() {
             />
           </div>
           <div style={{ width: '200px' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Class</label>
-            <select 
+            <Select 
+              label="Class"
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              placeholder="All Classes"
             >
-              <option value="">All Classes</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            </Select>
           </div>
           <div style={{ width: '200px' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Status</label>
-            <select 
+            <Select 
+              label="Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              placeholder="All Statuses"
             >
-              <option value="">All Statuses</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
               <option value="PASSED_OUT">Passed Out</option>
-            </select>
+            </Select>
           </div>
         </Card>
 

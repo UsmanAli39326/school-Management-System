@@ -119,12 +119,14 @@ export default function TeacherClassesPage() {
                     <tbody>
                       {students.map(student => (
                         <tr key={student.id} style={{ borderBottom: '1px solid var(--surface-border)' }}>
-                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{student.rollNumber || student.studentId}</td>
+                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{student.rollNumber || student.admissionNumber || student.studentId}</td>
                           <td style={{ padding: '0.75rem 0.5rem' }}>
-                            <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{student.firstName} {student.lastName}</div>
+                            <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                              {student.personalInfo?.fullName || `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Unnamed Student'}
+                            </div>
                           </td>
-                          <td style={{ padding: '0.75rem 0.5rem' }}>{student.gender}</td>
-                          <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>{student.guardian?.phone || 'N/A'}</td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>{student.personalInfo?.gender || student.gender || 'N/A'}</td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>{student.parentInfo?.phone || student.guardian?.phone || 'N/A'}</td>
                         </tr>
                       ))}
                     </tbody>

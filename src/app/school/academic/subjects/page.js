@@ -7,12 +7,14 @@ import Button from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import Input from '@/components/common/Input';
 import { useAuth } from '@/hooks/useAuth';
+import { useAlert } from '@/context/AlertContext';
 import { getClasses, createSubject, getSubjectsForClass, deleteSubject } from '@/firebase/db/academic';
 import { getAllUsers } from '@/firebase/db/users';
 import { Plus, Trash2, BookOpen } from 'lucide-react';
 
 export default function SubjectsPage() {
   const { schoolId } = useAuth();
+  const { showAlert } = useAlert();
   
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -79,7 +81,7 @@ export default function SubjectsPage() {
       loadSubjects(selectedClassId);
     } catch (error) {
       console.error('Error creating subject:', error);
-      alert('Failed to create subject');
+      showAlert('Failed to create subject', 'error');
     } finally {
       setIsSubmitting(false);
     }

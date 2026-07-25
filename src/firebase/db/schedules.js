@@ -78,6 +78,44 @@ export async function getSchedulesForTeacher(schoolId, teacherId) {
   }
 }
 
+/**
+ * Check if teacher has time overlap conflict on the given day
+ */
+export async function checkTeacherConflict(schoolId, teacherId, dayOfWeek, startTime, endTime, excludeScheduleId = null) {
+  if (!teacherId) return null;
+  const teacherSchedules = await getSchedulesForTeacher(schoolId, teacherId);
+  
+  for (const sch of teacherSchedules) {
+    if (excludeScheduleId && sch.id === excludeScheduleId) continue;
+    if (sch.dayOfWeek === dayOfWeek) {
+      if (sch.startTime < endTime && sch.endTime > startTime) {
+        return sch; // Conflict found
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Check if a class/section has a time overlap conflict on the given day
+ */
+export async function checkClassSectionConflict(schoolId, classId, sectionId, dayOfWeek, startTime, endTime, excludeScheduleId = null) {
+  const classSchedules = await getSchedulesForClass(schoolId, classId);
+  
+  for (const sch of classSchedules) {
+    if (excludeScheduleId && sch.id === excludeScheduleId) continue;
+    if (sch.dayOfWeek === dayOfWeek) {
+      const sameSection = !sectionId || !sch.sectionId || sch.sectionId === sectionId;
+      if (sameSection) {
+        if (sch.startTime < endTime && sch.endTime > startTime) {
+          return sch; // Conflict found
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export async function deleteSchedule(scheduleId) {
   const docRef = doc(db, SCHEDULES_COLLECTION, scheduleId);
   await deleteDoc(docRef);

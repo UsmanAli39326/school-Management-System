@@ -1,5 +1,6 @@
 import '@/styles/globals.css';
 import { AuthContextProvider } from '@/context/AuthContext';
+import { AlertProvider } from '@/context/AlertContext';
 
 export const metadata = {
   title: 'School Management System | Premium Enterprise Portal',
@@ -11,7 +12,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AuthContextProvider>
-          {children}
+          <AlertProvider>
+            {children}
+          </AlertProvider>
         </AuthContextProvider>
       </body>
     </html>

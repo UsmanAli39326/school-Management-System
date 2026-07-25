@@ -7,12 +7,14 @@ import Button from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import Input from '@/components/common/Input';
 import { useAuth } from '@/hooks/useAuth';
-import { getClassById, getSectionsForClass, createSection, deleteSection } from '@/firebase/db/academic';
-import { Plus, Trash2, ArrowLeft, Users } from 'lucide-react';
+import { getClassById, getSectionsForClass, createSection, updateSection, deleteSection } from '@/firebase/db/academic';
+import { Plus, Trash2, Edit2, ArrowLeft, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAlert } from '@/context/AlertContext';
 
 export default function ClassDetailsPage({ params }) {
   const { schoolId } = useAuth();
+  const { showAlert } = useAlert();
   const router = useRouter();
   const classId = params.classId;
   
@@ -20,6 +22,7 @@ export default function ClassDetailsPage({ params }) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSection, setEditingSection] = useState(null);
   
   const [newSectionName, setNewSectionName] = useState('');
   const [newRoomNumber, setNewRoomNumber] = useState('');
@@ -46,18 +49,43 @@ export default function ClassDetailsPage({ params }) {
     setLoading(false);
   };
 
-  const handleCreateSection = async (e) => {
+  const handleOpenCreateModal = () => {
+    setEditingSection(null);
+    setNewSectionName('');
+    setNewRoomNumber('');
+    setNewCapacity('30');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (sec) => {
+    setEditingSection(sec);
+    setNewSectionName(sec.name || '');
+    setNewRoomNumber(sec.roomNumber || '');
+    setNewCapacity(sec.capacity !== undefined && sec.capacity !== null ? String(sec.capacity) : '30');
+    setIsModalOpen(true);
+  };
+
+  const handleSaveSection = async (e) => {
     e.preventDefault();
     if (!newSectionName.trim()) return;
     
     setIsSubmitting(true);
     try {
-      await createSection(schoolId, classId, {
-        name: newSectionName,
-        roomNumber: newRoomNumber,
-        capacity: newCapacity
-      });
+      if (editingSection) {
+        await updateSection(editingSection.id, {
+          name: newSectionName,
+          roomNumber: newRoomNumber,
+          capacity: Number(newCapacity) || 30
+        });
+      } else {
+        await createSection(schoolId, classId, {
+          name: newSectionName,
+          roomNumber: newRoomNumber,
+          capacity: newCapacity
+        });
+      }
       setIsModalOpen(false);
+      setEditingSection(null);
       setNewSectionName('');
       setNewRoomNumber('');
       setNewCapacity('30');
@@ -65,8 +93,8 @@ export default function ClassDetailsPage({ params }) {
       const secs = await getSectionsForClass(schoolId, classId);
       setSections(secs);
     } catch (error) {
-      console.error('Error creating section:', error);
-      alert('Failed to create section');
+      console.error('Error saving section:', error);
+      showAlert(editingSection ? 'Failed to update section' : 'Failed to create section', "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -99,7 +127,7 @@ export default function ClassDetailsPage({ params }) {
                 <h1>{classData?.name}</h1>
                 <p style={{ color: 'var(--text-secondary)' }}>Level: {classData?.level}</p>
               </div>
-              <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+              <Button variant="primary" icon={Plus} onClick={handleOpenCreateModal}>
                 Add Section
               </Button>
             </div>
@@ -110,7 +138,7 @@ export default function ClassDetailsPage({ params }) {
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                   Add a section (e.g., A, B, Green, Blue) to start assigning students.
                 </p>
-                <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+                <Button variant="primary" icon={Plus} onClick={handleOpenCreateModal}>
                   Add Your First Section
                 </Button>
               </Card>
@@ -130,13 +158,24 @@ export default function ClassDetailsPage({ params }) {
                           </p>
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        style={{ padding: '0.5rem', color: 'var(--danger)' }} 
-                        onClick={() => handleDeleteSection(sec.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <Button 
+                          variant="outline" 
+                          style={{ padding: '0.5rem' }} 
+                          onClick={() => handleOpenEditModal(sec)}
+                          title="Edit Section"
+                        >
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          style={{ padding: '0.5rem', color: 'var(--danger)' }} 
+                          onClick={() => handleDeleteSection(sec.id)}
+                          title="Delete Section"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
@@ -152,9 +191,9 @@ export default function ClassDetailsPage({ params }) {
         <Modal 
           isOpen={isModalOpen} 
           onClose={() => !isSubmitting && setIsModalOpen(false)} 
-          title="Add New Section"
+          title={editingSection ? "Edit Section" : "Add New Section"}
         >
-          <form onSubmit={handleCreateSection} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleSaveSection} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Input
               label="Section Name"
               placeholder="e.g. A, B, Rose, Lily"
@@ -185,7 +224,7 @@ export default function ClassDetailsPage({ params }) {
                 Cancel
               </Button>
               <Button type="submit" variant="primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create Section'}
+                {isSubmitting ? (editingSection ? 'Updating...' : 'Creating...') : (editingSection ? 'Update Section' : 'Create Section')}
               </Button>
             </div>
           </form>

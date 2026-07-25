@@ -7,11 +7,13 @@ import Button from '@/components/common/Button';
 import { uploadFile } from '@/firebase/storage';
 import { addExpense } from '@/firebase/db/accounting';
 import { useAuth } from '@/hooks/useAuth';
+import { useAlert } from '@/context/AlertContext';
 
 const CATEGORIES = ['Utility Bills', 'Office Expenses', 'Maintenance', 'Miscellaneous'];
 
 export default function ExpenseFormModal({ isOpen, onClose, onSuccess }) {
   const { schoolId, currentUser } = useAuth();
+  const { showAlert } = useAlert();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [file, setFile] = useState(null);
@@ -24,7 +26,7 @@ export default function ExpenseFormModal({ isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async () => {
     if (!formData.amount || !formData.date) {
-      alert("Amount and Date are required.");
+      showAlert("Amount and Date are required.", "error");
       return;
     }
 
@@ -56,7 +58,7 @@ export default function ExpenseFormModal({ isOpen, onClose, onSuccess }) {
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Failed to add expense.");
+      showAlert("Failed to add expense.", "error");
     } finally {
       setIsSubmitting(false);
     }

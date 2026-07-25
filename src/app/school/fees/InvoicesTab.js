@@ -1,20 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
+import Select from '@/components/common/Select';
 import { useAuth } from '@/hooks/useAuth';
 import { getInvoices, generateInvoicesForClass, getFeeStructures } from '@/firebase/db/fees';
 import { getClasses } from '@/firebase/db/academic';
 import { getStudentsBySchool } from '@/firebase/db/students';
 import { FileText, Plus, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAlert } from '@/context/AlertContext';
 
-export default function InvoicesPage() {
+export default function InvoicesTab() {
   const { schoolId } = useAuth();
   const router = useRouter();
+  const { showAlert } = useAlert();
   
   const [invoices, setInvoices] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -62,7 +65,7 @@ export default function InvoicesPage() {
       const levelStructures = structures.filter(s => s.level === cls.level);
       
       if (levelStructures.length === 0) {
-        alert(`No fee structures found for level: ${cls.level}. Please create them first.`);
+        showAlert(`No fee structures found for level: ${cls.level}. Please create them first.`, "error");
         setGenerating(false);
         return;
       }
@@ -70,19 +73,19 @@ export default function InvoicesPage() {
       const classStudents = students.filter(s => s.classId === genClassId && s.academicDetails.status === 'ACTIVE');
       
       if (classStudents.length === 0) {
-        alert("No active students found in this class.");
+        showAlert("No active students found in this class.", "error");
         setGenerating(false);
         return;
       }
       
-      await generateInvoicesForClass(schoolId, genClassId, classStudents, levelStructures, genMonth);
+      const result = await generateInvoicesForClass(schoolId, genClassId, classStudents, levelStructures, genMonth);
       
-      alert(`Successfully generated invoices for ${classStudents.length} students.`);
+      showAlert(`Generated ${result.createdCount || 0} new invoice(s). ${result.skippedCount || 0} existing invoice(s) were preserved.`, "success");
       setIsModalOpen(false);
       loadData();
     } catch (error) {
       console.error(error);
-      alert("Failed to generate invoices.");
+      showAlert("Failed to generate invoices.", "error");
     } finally {
       setGenerating(false);
     }
@@ -108,8 +111,7 @@ export default function InvoicesPage() {
   });
 
   return (
-    <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <div>
@@ -127,18 +129,17 @@ export default function InvoicesPage() {
 
         <Card style={{ marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
           <div style={{ width: '200px' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Status</label>
-            <select 
+            <Select 
+              label="Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              placeholder="All Statuses"
             >
-              <option value="">All Statuses</option>
               <option value="UNPAID">Unpaid</option>
               <option value="PARTIAL">Partial</option>
               <option value="PAID">Paid</option>
               <option value="OVERDUE">Overdue</option>
-            </select>
+            </Select>
           </div>
         </Card>
 
@@ -190,17 +191,14 @@ export default function InvoicesPage() {
               This will generate an invoice for every active student in the selected class based on the fee structures defined for their class level.
             </p>
             
-            <div>
-              <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Class</label>
-              <select 
-                value={genClassId}
-                onChange={(e) => setGenClassId(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
-              >
-                <option value="">Select Class</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+            <Select 
+              label="Class"
+              value={genClassId}
+              onChange={(e) => setGenClassId(e.target.value)}
+              placeholder="Select Class"
+            >
+              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
 
             <div>
               <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Fee Month</label>
@@ -218,7 +216,6 @@ export default function InvoicesPage() {
           </div>
         </Modal>
 
-      </div>
-    </ProtectedRoute>
+    </div>
   );
 }

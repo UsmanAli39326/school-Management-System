@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { getClasses } from '@/firebase/db/academic';
 import { getStudentsBySchool } from '@/firebase/db/students';
 import { getPendingFees, getMonthlyCollection } from '@/firebase/db/fees';
+import { getSchoolById } from '@/firebase/db/schools';
 import TeacherDashboard from './TeacherDashboard';
 
 export default function SchoolDashboard() {
@@ -21,6 +22,7 @@ export default function SchoolDashboard() {
   const [studentsCount, setStudentsCount] = useState(0);
   const [pendingFees, setPendingFees] = useState(0);
   const [monthlyCollection, setMonthlyCollection] = useState(0);
+  const [currency, setCurrency] = useState('USD');
   const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
@@ -34,12 +36,14 @@ export default function SchoolDashboard() {
         getClasses(schoolId),
         getStudentsBySchool(schoolId),
         getPendingFees(schoolId),
-        getMonthlyCollection(schoolId)
-      ]).then(([classes, students, pending, collection]) => {
+        getMonthlyCollection(schoolId),
+        getSchoolById(schoolId)
+      ]).then(([classes, students, pending, collection, school]) => {
         setClassesCount(classes.length);
         setStudentsCount(students.length);
         setPendingFees(pending);
         setMonthlyCollection(collection);
+        setCurrency(school?.config?.currency || 'USD');
         setLoading(false);
       });
     }
@@ -129,7 +133,7 @@ export default function SchoolDashboard() {
                 <div>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Collection (Month)</p>
                   <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#10b981', lineHeight: 1.2 }}>
-                    {loading ? '—' : '$' + monthlyCollection.toLocaleString()}
+                    {loading ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(monthlyCollection)}
                   </h3>
                 </div>
               </Card>
@@ -141,7 +145,7 @@ export default function SchoolDashboard() {
                 <div>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Pending Fees</p>
                   <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#ef4444', lineHeight: 1.2 }}>
-                    {loading ? '—' : '$' + pendingFees.toLocaleString()}
+                    {loading ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(pendingFees)}
                   </h3>
                 </div>
               </Card>
@@ -152,7 +156,7 @@ export default function SchoolDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Quick Actions</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.25rem' }}>
-            
+
             {/* Admin Only Actions */}
             {['SCHOOL_ADMIN'].includes(role) && (
               <>
@@ -174,7 +178,7 @@ export default function SchoolDashboard() {
             {/* Accounting Actions */}
             {['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role) && (
               <>
-                <ActionCard icon={FileText} label="Collect Fee" color="#ef4444" onClick={() => router.push('/school/fees/collection')} />
+                <ActionCard icon={FileText} label="Collect Fee" color="#ef4444" onClick={() => router.push('/school/fees?tab=collection')} />
                 <ActionCard icon={FileText} label="Manage Expenses" color="#f43f5e" onClick={() => router.push('/school/accounting/expenses')} />
                 <ActionCard icon={BarChart3} label="Reports Hub" color="#14b8a6" onClick={() => router.push('/school/reports')} />
                 <ActionCard icon={FileText} label="Financial Summary" color="#84cc16" onClick={() => router.push('/school/accounting/summary')} />

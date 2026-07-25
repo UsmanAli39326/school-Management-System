@@ -29,6 +29,8 @@ export async function admitStudent(schoolId, studentData) {
     admissionDate: studentData.admissionDate || serverTimestamp(),
     classId: studentData.classId || '',
     sectionId: studentData.sectionId || '',
+    sessionId: studentData.sessionId || '',
+    sessionName: studentData.sessionName || '',
     
     personalInfo: {
       fullName: studentData.personalInfo?.fullName || '',

@@ -4,15 +4,20 @@ import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
+import Modal from '@/components/common/Modal';
+import Input from '@/components/common/Input';
+import Select from '@/components/common/Select';
 import { useAuth } from '@/hooks/useAuth';
+import { useAlert } from '@/context/AlertContext';
 import { getStudentById, deleteStudent, updateStudent } from '@/firebase/db/students';
-import { getClassById, getSectionsForClass } from '@/firebase/db/academic';
+import { getClassById, getClasses, getSectionsForClass } from '@/firebase/db/academic';
 import { getStudentLedger } from '@/firebase/db/fees';
 import { ArrowLeft, Printer, Trash2, Edit2, UserCircle, MapPin, Phone, BookOpen, DollarSign, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function StudentProfilePage({ params }) {
   const { schoolId, role } = useAuth();
+  const { showAlert } = useAlert();
   const router = useRouter();
   const studentId = params.studentId;
   
@@ -26,12 +31,58 @@ export default function StudentProfilePage({ params }) {
   const [customFeesForm, setCustomFeesForm] = useState({ feeType: 'Tuition', amount: '' });
   const [savingFees, setSavingFees] = useState(false);
 
+  // Class & Section lists for editing
+  const [classList, setClassList] = useState([]);
+  const [sectionList, setSectionList] = useState([]);
+
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdatingStudent, setIsUpdatingStudent] = useState(false);
+  const [editForm, setEditForm] = useState({
+    admissionNumber: '',
+    rollNumber: '',
+    classId: '',
+    sectionId: '',
+    fullName: '',
+    gender: 'Male',
+    dob: '',
+    bloodGroup: '',
+    religion: '',
+    nationality: '',
+    fatherName: '',
+    motherName: '',
+    guardianName: '',
+    phone: '',
+    email: '',
+    cnic: '',
+    occupation: '',
+    currentAddress: '',
+    permanentAddress: '',
+    city: '',
+    postalCode: '',
+    status: 'ACTIVE'
+  });
+
   useEffect(() => {
     if (schoolId && studentId) {
       loadStudentProfile();
       loadLedger();
     }
   }, [schoolId, studentId]);
+
+  const formatDateForInput = (dateVal) => {
+    if (!dateVal) return '';
+    if (typeof dateVal === 'string') {
+      return dateVal.split('T')[0];
+    }
+    if (dateVal?.toDate && typeof dateVal.toDate === 'function') {
+      return dateVal.toDate().toISOString().split('T')[0];
+    }
+    if (dateVal instanceof Date) {
+      return dateVal.toISOString().split('T')[0];
+    }
+    return '';
+  };
 
   const loadStudentProfile = async () => {
     setLoading(true);
@@ -61,6 +112,109 @@ export default function StudentProfilePage({ params }) {
     setLoading(false);
   };
 
+  const handleOpenEditModal = async () => {
+    if (!student) return;
+
+    const classesData = await getClasses(schoolId);
+    setClassList(classesData);
+
+    if (student.classId) {
+      const secs = await getSectionsForClass(schoolId, student.classId);
+      setSectionList(secs);
+    } else {
+      setSectionList([]);
+    }
+
+    setEditForm({
+      admissionNumber: student.admissionNumber || '',
+      rollNumber: student.rollNumber || '',
+      classId: student.classId || '',
+      sectionId: student.sectionId || '',
+      fullName: student.personalInfo?.fullName || '',
+      gender: student.personalInfo?.gender || 'Male',
+      dob: formatDateForInput(student.personalInfo?.dob),
+      bloodGroup: student.personalInfo?.bloodGroup || '',
+      religion: student.personalInfo?.religion || '',
+      nationality: student.personalInfo?.nationality || '',
+      fatherName: student.parentInfo?.fatherName || '',
+      motherName: student.parentInfo?.motherName || '',
+      guardianName: student.parentInfo?.guardianName || '',
+      phone: student.parentInfo?.phone || '',
+      email: student.parentInfo?.email || '',
+      cnic: student.parentInfo?.cnic || '',
+      occupation: student.parentInfo?.occupation || '',
+      currentAddress: student.addresses?.current || '',
+      permanentAddress: student.addresses?.permanent || '',
+      city: student.addresses?.city || '',
+      postalCode: student.addresses?.postalCode || '',
+      status: student.academicDetails?.status || 'ACTIVE'
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleClassChangeInEdit = async (newClassId) => {
+    setEditForm(prev => ({ ...prev, classId: newClassId, sectionId: '' }));
+    if (newClassId) {
+      const secs = await getSectionsForClass(schoolId, newClassId);
+      setSectionList(secs);
+    } else {
+      setSectionList([]);
+    }
+  };
+
+  const handleSaveEditStudent = async (e) => {
+    e.preventDefault();
+    setIsUpdatingStudent(true);
+    try {
+      const updatedData = {
+        admissionNumber: editForm.admissionNumber,
+        rollNumber: editForm.rollNumber,
+        classId: editForm.classId,
+        sectionId: editForm.sectionId,
+        personalInfo: {
+          ...student.personalInfo,
+          fullName: editForm.fullName,
+          gender: editForm.gender,
+          dob: editForm.dob ? new Date(editForm.dob) : null,
+          bloodGroup: editForm.bloodGroup,
+          religion: editForm.religion,
+          nationality: editForm.nationality,
+        },
+        parentInfo: {
+          ...student.parentInfo,
+          fatherName: editForm.fatherName,
+          motherName: editForm.motherName,
+          guardianName: editForm.guardianName,
+          phone: editForm.phone,
+          email: editForm.email,
+          cnic: editForm.cnic,
+          occupation: editForm.occupation,
+        },
+        addresses: {
+          ...student.addresses,
+          current: editForm.currentAddress,
+          permanent: editForm.permanentAddress,
+          city: editForm.city,
+          postalCode: editForm.postalCode,
+        },
+        academicDetails: {
+          ...student.academicDetails,
+          status: editForm.status
+        }
+      };
+
+      await updateStudent(studentId, updatedData);
+      setIsEditModalOpen(false);
+      await loadStudentProfile();
+      showAlert('Student profile updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error updating student profile:', error);
+      showAlert('Failed to update student profile.', 'error');
+    } finally {
+      setIsUpdatingStudent(false);
+    }
+  };
+
   const loadLedger = async () => {
     const data = await getStudentLedger(schoolId, studentId);
     setLedger(data);
@@ -80,10 +234,10 @@ export default function StudentProfilePage({ params }) {
       // Update local state
       setStudent({ ...student, customFees: updatedCustomFees });
       setCustomFeesForm({ ...customFeesForm, amount: '' });
-      alert("Custom fee saved successfully!");
+      showAlert("Custom fee saved successfully!", 'success');
     } catch (error) {
       console.error(error);
-      alert("Failed to save custom fee.");
+      showAlert("Failed to save custom fee.", 'error');
     } finally {
       setSavingFees(false);
     }
@@ -135,10 +289,10 @@ export default function StudentProfilePage({ params }) {
             <Button variant="outline" icon={Printer} onClick={handlePrint}>
               Print {activeTab === 'PROFILE' ? 'Profile' : 'Ledger'}
             </Button>
-            {['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role) && (
+            {['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'].includes(role) && (
               <>
-                <Button variant="outline" icon={Edit2} onClick={() => alert('Edit form coming soon!')}>
-                  Edit
+                <Button variant="outline" icon={Edit2} onClick={handleOpenEditModal}>
+                  Edit Profile
                 </Button>
                 <Button variant="outline" icon={Trash2} onClick={handleDelete} style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}>
                   Delete
@@ -278,6 +432,10 @@ export default function StudentProfilePage({ params }) {
                   <strong>{student.parentInfo.motherName || 'N/A'}</strong>
                 </div>
                 <div>
+                  <span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>Guardian Name</span>
+                  <strong>{student.parentInfo.guardianName || 'N/A'}</strong>
+                </div>
+                <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>Primary Phone</span>
                   <strong>{student.parentInfo.phone || 'N/A'}</strong>
                 </div>
@@ -322,7 +480,7 @@ export default function StudentProfilePage({ params }) {
             
             <Card style={{ gridColumn: '1 / -1' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-                <BookOpen size={20} color="var(--primary-color)" /> Academic History
+                <BookOpen size={20} color="var(--primary-color)" /> Academic Details
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', fontSize: '0.875rem' }}>
                 <div>
@@ -331,11 +489,11 @@ export default function StudentProfilePage({ params }) {
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>Admission Type</span>
-                  <strong>{student.academicDetails.admissionType || 'N/A'}</strong>
+                  <strong>{student.academicDetails?.admissionType || 'N/A'}</strong>
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>Previous School</span>
-                  <strong>{student.academicDetails.previousSchool || 'N/A'}</strong>
+                  <strong>{student.academicDetails?.previousSchool || 'N/A'}</strong>
                 </div>
               </div>
             </Card>
@@ -399,18 +557,17 @@ export default function StudentProfilePage({ params }) {
 
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '2rem' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Fee Type</label>
-                  <select 
+                  <Select 
+                    label="Fee Type"
                     value={customFeesForm.feeType}
                     onChange={e => setCustomFeesForm({ ...customFeesForm, feeType: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
                   >
                     <option value="Tuition">Tuition</option>
                     <option value="Admission">Admission</option>
                     <option value="Annual">Annual</option>
                     <option value="Exam">Exam</option>
                     <option value="Misc">Misc</option>
-                  </select>
+                  </Select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Custom Amount</label>
@@ -454,6 +611,188 @@ export default function StudentProfilePage({ params }) {
             </Card>
           </div>
         )}
+
+        {/* Edit Student Modal */}
+        <Modal 
+          isOpen={isEditModalOpen} 
+          onClose={() => !isUpdatingStudent && setIsEditModalOpen(false)} 
+          title="Edit Student Profile"
+        >
+          <form onSubmit={handleSaveEditStudent} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '75vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+            
+            {/* Academic Information */}
+            <h4 style={{ margin: 0, color: 'var(--primary-color)' }}>Academic Details</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <Input
+                label="Admission Number *"
+                value={editForm.admissionNumber}
+                onChange={(e) => setEditForm({ ...editForm, admissionNumber: e.target.value })}
+                required
+              />
+              <Input
+                label="Roll Number"
+                value={editForm.rollNumber}
+                onChange={(e) => setEditForm({ ...editForm, rollNumber: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <Select
+                label="Class"
+                value={editForm.classId}
+                onChange={(e) => handleClassChangeInEdit(e.target.value)}
+                placeholder="Select Class"
+              >
+                {classList.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </Select>
+
+              <Select
+                label="Section"
+                value={editForm.sectionId}
+                onChange={(e) => setEditForm({ ...editForm, sectionId: e.target.value })}
+                disabled={!editForm.classId}
+                placeholder={editForm.classId ? "Select Section" : "Select Class First"}
+              >
+                {sectionList.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Personal Information */}
+            <h4 style={{ margin: '0.5rem 0 0 0', color: 'var(--primary-color)' }}>Personal Information</h4>
+            <Input
+              label="Full Name *"
+              value={editForm.fullName}
+              onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+              required
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <Select
+                label="Gender"
+                value={editForm.gender}
+                onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </Select>
+              <Input
+                label="Date of Birth"
+                type="date"
+                value={editForm.dob}
+                onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <Input
+                label="Blood Group"
+                placeholder="e.g. O+, A+"
+                value={editForm.bloodGroup}
+                onChange={(e) => setEditForm({ ...editForm, bloodGroup: e.target.value })}
+              />
+              <Input
+                label="Religion"
+                value={editForm.religion}
+                onChange={(e) => setEditForm({ ...editForm, religion: e.target.value })}
+              />
+              <Input
+                label="Nationality"
+                value={editForm.nationality}
+                onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
+              />
+            </div>
+
+            {/* Parent Information */}
+            <h4 style={{ margin: '0.5rem 0 0 0', color: 'var(--primary-color)' }}>Parent / Guardian Details</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <Input
+                label="Father's Name"
+                value={editForm.fatherName}
+                onChange={(e) => setEditForm({ ...editForm, fatherName: e.target.value })}
+              />
+              <Input
+                label="Mother's Name"
+                value={editForm.motherName}
+                onChange={(e) => setEditForm({ ...editForm, motherName: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <Input
+                label="Guardian Name"
+                value={editForm.guardianName}
+                onChange={(e) => setEditForm({ ...editForm, guardianName: e.target.value })}
+              />
+              <Input
+                label="Parent Phone *"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+              <Input
+                label="CNIC / ID"
+                value={editForm.cnic}
+                onChange={(e) => setEditForm({ ...editForm, cnic: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <Input
+                label="Parent Email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+              <Input
+                label="Occupation"
+                value={editForm.occupation}
+                onChange={(e) => setEditForm({ ...editForm, occupation: e.target.value })}
+              />
+            </div>
+
+            {/* Address & Status */}
+            <h4 style={{ margin: '0.5rem 0 0 0', color: 'var(--primary-color)' }}>Address & Status</h4>
+            <Input
+              label="Current Address"
+              value={editForm.currentAddress}
+              onChange={(e) => setEditForm({ ...editForm, currentAddress: e.target.value })}
+            />
+            <Input
+              label="Permanent Address"
+              value={editForm.permanentAddress}
+              onChange={(e) => setEditForm({ ...editForm, permanentAddress: e.target.value })}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <Input
+                label="City"
+                value={editForm.city}
+                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+              />
+              <Input
+                label="Postal Code"
+                value={editForm.postalCode}
+                onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
+              />
+              <Select
+                label="Academic Status"
+                value={editForm.status}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="PASSED_OUT">Passed Out</option>
+              </Select>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={isUpdatingStudent}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={isUpdatingStudent}>
+                {isUpdatingStudent ? 'Saving Changes...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </ProtectedRoute>
   );

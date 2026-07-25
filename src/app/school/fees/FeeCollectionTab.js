@@ -1,19 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
+import Select from '@/components/common/Select';
 import Modal from '@/components/common/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import { getInvoices, collectPayment } from '@/firebase/db/fees';
 import { getStudentsBySchool } from '@/firebase/db/students';
 import { getClasses } from '@/firebase/db/academic';
 import { DollarSign, Search, CheckCircle, Printer } from 'lucide-react';
+import { useAlert } from '@/context/AlertContext';
 
-export default function FeeCollectionPage() {
+export default function FeeCollectionTab() {
   const { schoolId } = useAuth();
+  const { showAlert } = useAlert();
   
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -97,7 +100,7 @@ export default function FeeCollectionPage() {
       });
     } catch (error) {
       console.error(error);
-      alert("Failed to process payment");
+      showAlert("Failed to process payment", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -188,8 +191,7 @@ export default function FeeCollectionPage() {
   // COLLECTION VIEW
   // -------------------------------------
   return (
-    <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']}>
-      <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
         
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, marginBottom: '0.5rem' }}>
@@ -304,18 +306,15 @@ export default function FeeCollectionPage() {
                 <Input label="Fine/Arrears (Optional)" type="number" value={paymentForm.fine} onChange={e => setPaymentForm({...paymentForm, fine: e.target.value})} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Payment Method</label>
-                <select 
-                  value={paymentForm.paymentMethod}
-                  onChange={e => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
-                  style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
-                >
-                  <option value="CASH">Cash</option>
-                  <option value="BANK_TRANSFER">Bank Transfer</option>
-                  <option value="CHEQUE">Cheque</option>
-                </select>
-              </div>
+              <Select 
+                label="Payment Method"
+                value={paymentForm.paymentMethod}
+                onChange={e => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
+              >
+                <option value="CASH">Cash</option>
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="CHEQUE">Cheque</option>
+              </Select>
 
               <Input label="Amount Paid Now *" type="number" value={paymentForm.paidAmount} onChange={e => setPaymentForm({...paymentForm, paidAmount: e.target.value})} />
               <Input label="Remarks (Optional)" value={paymentForm.remarks} onChange={e => setPaymentForm({...paymentForm, remarks: e.target.value})} />
@@ -332,7 +331,6 @@ export default function FeeCollectionPage() {
           )}
         </Modal>
 
-      </div>
-    </ProtectedRoute>
+    </div>
   );
 }

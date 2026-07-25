@@ -10,9 +10,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { getAllUsers } from '@/firebase/db/users';
 import { createInvitation, getInvitations, revokeInvitation } from '@/firebase/db/staff';
 import { Users, Mail, Trash2, UserPlus } from 'lucide-react';
+import { useAlert } from '@/context/AlertContext';
 
 export default function StaffManagementPage() {
   const { schoolId, currentUser } = useAuth();
+  const { showAlert } = useAlert();
   
   const [activeStaff, setActiveStaff] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -49,9 +51,10 @@ export default function StaffManagementPage() {
       setInviteRole('TEACHER');
       setIsModalOpen(false);
       loadData();
+      showAlert("Invitation sent successfully!", "success");
     } catch (error) {
       console.error(error);
-      alert("Failed to send invitation.");
+      showAlert("Failed to send invitation.", "error");
     } finally {
       setIsInviting(false);
     }

@@ -57,9 +57,7 @@ const NAV_SECTIONS = [
   {
     label: 'Finance',
     items: [
-      { name: 'Fee Collection', href: '/school/fees/collection', icon: Wallet, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
-      { name: 'Invoices', href: '/school/fees/invoices', icon: Receipt, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
-      { name: 'Fee Structures', href: '/school/fees/structures', icon: Wallet, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
+      { name: 'Fee Management', href: '/school/fees', icon: Wallet, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
       { name: 'Expenses', href: '/school/accounting/expenses', icon: Receipt, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
       { name: 'Financial Summary', href: '/school/accounting/summary', icon: BarChart3, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
       { name: 'Reports', href: '/school/reports', icon: BarChart3, roles: ['SCHOOL_ADMIN', 'ACCOUNTANT'] },
@@ -86,12 +84,24 @@ function initialsFor(email) {
   return name.slice(0, 2).toUpperCase();
 }
 
+import { getSessions } from '@/firebase/db/academic';
+
 export default function SchoolShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, role, logout } = useAuth();
+  const { currentUser, role, schoolId, logout } = useAuth();
+
+  useEffect(() => {
+    if (schoolId) {
+      getSessions(schoolId).then((sessionsData) => {
+        const current = sessionsData.find((s) => s.isCurrent);
+        setActiveSession(current || sessionsData[0] || null);
+      });
+    }
+  }, [schoolId]);
 
   const sections = NAV_SECTIONS
     .map((section) => ({
@@ -288,6 +298,15 @@ export default function SchoolShell({ children }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
+            {activeSession && (
+              <span style={{
+                fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.75rem',
+                borderRadius: '9999px', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success)',
+                display: 'flex', alignItems: 'center', gap: '0.375rem', border: '1px solid rgba(5, 150, 105, 0.2)'
+              }}>
+                <Calendar size={14} /> Session: {activeSession.name}
+              </span>
+            )}
             <span style={{
               fontSize: '0.6875rem', fontWeight: 600, padding: '0.25rem 0.625rem',
               borderRadius: '9999px', backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)',

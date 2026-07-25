@@ -5,23 +5,27 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
+import Select from '@/components/common/Select';
 import { useAuth } from '@/hooks/useAuth';
+import { useAlert } from '@/context/AlertContext';
 import { admitStudent } from '@/firebase/db/students';
-import { getClasses, getSectionsForClass } from '@/firebase/db/academic';
-import { uploadFile, generateUniqueFileName } from '@/firebase/storage';
-import { ArrowLeft, ArrowRight, Check, UploadCloud } from 'lucide-react';
+import { getClasses, getSectionsForClass, getSessions } from '@/firebase/db/academic';
+import { generateInvoicesForClass, getFeeStructures } from '@/firebase/db/fees';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const STEPS = ['Admission Details', 'Personal Info', 'Parent Info', 'Address', 'Review'];
 
 export default function StudentAdmissionPage() {
   const { schoolId } = useAuth();
+  const { showAlert } = useAlert();
   const router = useRouter();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
+  const [activeSession, setActiveSession] = useState(null);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -55,12 +59,13 @@ export default function StudentAdmissionPage() {
     }
   });
 
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState('');
-
   useEffect(() => {
     if (schoolId) {
       getClasses(schoolId).then(setClasses);
+      getSessions(schoolId).then(sessionsData => {
+        const current = sessionsData.find(s => s.isCurrent);
+        setActiveSession(current || sessionsData[0] || null);
+      });
     }
   }, [schoolId]);
 
@@ -91,14 +96,6 @@ export default function StudentAdmissionPage() {
     }
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
-  };
-
   const nextStep = () => {
     // Basic validation could go here
     if (currentStep < STEPS.length - 1) {
@@ -115,27 +112,35 @@ export default function StudentAdmissionPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      let photoUrl = '';
-      if (photoFile) {
-        const path = `students/${schoolId}/photos/${generateUniqueFileName(photoFile.name)}`;
-        photoUrl = await uploadFile(photoFile, path);
-      }
-
       const finalData = {
         ...formData,
+        sessionId: activeSession ? activeSession.id : '',
+        sessionName: activeSession ? activeSession.name : '',
         admissionDate: new Date(formData.admissionDate),
         personalInfo: {
           ...formData.personalInfo,
           dob: formData.personalInfo.dob ? new Date(formData.personalInfo.dob) : null,
-          photoUrl
         }
       };
 
       const result = await admitStudent(schoolId, finalData);
+
+      // Auto-generate invoices for the new student
+      const cls = classes.find(c => c.id === formData.classId);
+      if (cls) {
+        const structures = await getFeeStructures(schoolId);
+        const levelStructures = structures.filter(s => s.level === cls.level);
+        
+        if (levelStructures.length > 0) {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          await generateInvoicesForClass(schoolId, formData.classId, [result], levelStructures, currentMonth);
+        }
+      }
+
       router.push(`/school/students/${result.id}`);
     } catch (error) {
       console.error("Failed to admit student:", error);
-      alert("Failed to admit student. Please try again.");
+      showAlert("Failed to admit student. Please try again.", "error");
       setIsSubmitting(false);
     }
   };
@@ -149,54 +154,45 @@ export default function StudentAdmissionPage() {
             <Input label="Admission Date *" type="date" value={formData.admissionDate} onChange={e => handleInputChange(null, 'admissionDate', e.target.value)} />
             <Input label="Roll Number" value={formData.rollNumber} onChange={e => handleInputChange(null, 'rollNumber', e.target.value)} />
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Class *</label>
-              <select value={formData.classId} onChange={e => handleInputChange(null, 'classId', e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}>
-                <option value="">Select Class</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+            <Select 
+              label="Class *" 
+              value={formData.classId} 
+              onChange={e => handleInputChange(null, 'classId', e.target.value)}
+              placeholder="Select Class"
+            >
+              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Section</label>
-              <select value={formData.sectionId} onChange={e => handleInputChange(null, 'sectionId', e.target.value)} disabled={!formData.classId} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}>
-                <option value="">Select Section</option>
-                {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
+            <Select 
+              label="Section" 
+              value={formData.sectionId} 
+              onChange={e => handleInputChange(null, 'sectionId', e.target.value)} 
+              disabled={!formData.classId}
+              placeholder={formData.classId ? "Select Section" : "Select Class First"}
+            >
+              {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </Select>
           </div>
         );
       case 1:
         return (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-color)' }}>
-                {photoPreview ? <img src={photoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UploadCloud size={24} color="var(--text-tertiary)" />}
-              </div>
-              <div>
-                <label style={{ display: 'inline-block', padding: '0.5rem 1rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
-                  Upload Photo
-                  <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
-                </label>
-              </div>
-            </div>
-
             <Input label="Full Name *" value={formData.personalInfo.fullName} onChange={e => handleInputChange('personalInfo', 'fullName', e.target.value)} />
             <Input label="Date of Birth *" type="date" value={formData.personalInfo.dob} onChange={e => handleInputChange('personalInfo', 'dob', e.target.value)} />
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Gender *</label>
-              <select value={formData.personalInfo.gender} onChange={e => handleInputChange('personalInfo', 'gender', e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}>
-                <option value="">Select</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+            <Select 
+              label="Gender *" 
+              value={formData.personalInfo.gender} 
+              onChange={e => handleInputChange('personalInfo', 'gender', e.target.value)}
+              placeholder="Select Gender"
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </Select>
             
             <Input label="Blood Group" value={formData.personalInfo.bloodGroup} onChange={e => handleInputChange('personalInfo', 'bloodGroup', e.target.value)} />
             <Input label="Religion" value={formData.personalInfo.religion} onChange={e => handleInputChange('personalInfo', 'religion', e.target.value)} />
-            <Input label="Nationality" value={formData.personalInfo.nationality} onChange={e => handleInputChange('personalInfo', 'nationality', e.target.value)} />
           </div>
         );
       case 2:
@@ -233,7 +229,6 @@ export default function StudentAdmissionPage() {
               <p><strong>Father's Name:</strong> {formData.parentInfo.fatherName || 'Not provided'}</p>
               <p><strong>Phone:</strong> {formData.parentInfo.phone || 'Not provided'}</p>
               <p><strong>City:</strong> {formData.addresses.city || 'Not provided'}</p>
-              {photoFile && <p style={{ color: 'var(--success-color)' }}>✓ Photo attached</p>}
             </div>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Please ensure all details are correct before admitting the student. You can edit these details later from the student profile.</p>
           </div>

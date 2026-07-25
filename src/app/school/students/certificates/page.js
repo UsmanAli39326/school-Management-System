@@ -38,12 +38,40 @@ export default function CertificatesPage() {
 
   const handlePrint = () => {
     const printContent = document.getElementById('printable-certificate');
-    const originalContent = document.body.innerHTML;
-    
-    document.body.innerHTML = printContent.outerHTML;
-    window.print();
-    document.body.innerHTML = originalContent;
-    window.location.reload(); // Reload to restore React bindings after native DOM manipulation
+    if (!printContent) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Certificate</title>
+          <style>
+            @page { size: A4; margin: 0; }
+            body { margin: 0; padding: 20mm; font-family: serif; color: #000; background: #fff; }
+            * { box-sizing: border-box; }
+          </style>
+        </head>
+        <body>
+          ${printContent.innerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe);
+    }, 250);
   };
 
   return (

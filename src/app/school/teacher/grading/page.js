@@ -4,17 +4,20 @@ import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
+import Select from '@/components/common/Select';
 import Input from '@/components/common/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { getSubjectsForTeacher, getClassById } from '@/firebase/db/academic';
 import { getStudentsByClass } from '@/firebase/db/students';
 import { recordGrade, getGradesForSubject } from '@/firebase/db/grades';
 import { CheckCircle, Save, AlertCircle } from 'lucide-react';
+import { useAlert } from '@/context/AlertContext';
 
 const EXAM_TERMS = ['Midterm', 'Final', 'Assignment 1', 'Assignment 2', 'Quiz 1'];
 
 export default function TeacherGradingPage() {
   const { currentUser, schoolId } = useAuth();
+  const { showAlert } = useAlert();
   
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
@@ -133,9 +136,10 @@ export default function TeacherGradingPage() {
 
       await Promise.all(promises);
       setSaveSuccess(true);
+      showAlert('Grades saved successfully!', 'success');
     } catch (error) {
       console.error('Error saving grades:', error);
-      alert('Failed to save some grades.');
+      showAlert('Failed to save some grades.', 'error');
     } finally {
       setSaving(false);
     }
@@ -173,31 +177,25 @@ export default function TeacherGradingPage() {
         ) : (
           <Card style={{ padding: '1.5rem', marginBottom: '2rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-              <div className="fieldGroup">
-                <label className="label">Select Subject</label>
-                <select
-                  className="input"
-                  value={selectedSubjectId}
-                  onChange={(e) => setSelectedSubjectId(e.target.value)}
-                >
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} (Class ID: {s.classId})</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Select Subject"
+                value={selectedSubjectId}
+                onChange={(e) => setSelectedSubjectId(e.target.value)}
+              >
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} (Class ID: {s.classId})</option>
+                ))}
+              </Select>
               
-              <div className="fieldGroup">
-                <label className="label">Assessment Term</label>
-                <select
-                  className="input"
-                  value={selectedTerm}
-                  onChange={(e) => setSelectedTerm(e.target.value)}
-                >
-                  {EXAM_TERMS.map(term => (
-                    <option key={term} value={term}>{term}</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Assessment Term"
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
+              >
+                {EXAM_TERMS.map(term => (
+                  <option key={term} value={term}>{term}</option>
+                ))}
+              </Select>
             </div>
           </Card>
         )}
@@ -220,8 +218,10 @@ export default function TeacherGradingPage() {
                 <tbody>
                   {students.map(student => (
                     <tr key={student.id} style={{ borderBottom: '1px solid var(--surface-border)' }}>
-                      <td style={{ padding: '1rem', fontWeight: 500 }}>{student.firstName} {student.lastName}</td>
-                      <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{student.rollNumber || student.studentId}</td>
+                      <td style={{ padding: '1rem', fontWeight: 500 }}>
+                        {student.personalInfo?.fullName || `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Unnamed Student'}
+                      </td>
+                      <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{student.rollNumber || student.admissionNumber || student.studentId}</td>
                       <td style={{ padding: '1rem', width: '120px' }}>
                         <input
                           type="number"

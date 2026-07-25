@@ -5,7 +5,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import { useAuth } from '@/hooks/useAuth';
 import { getSchedulesForTeacher } from '@/firebase/db/schedules';
-import { getSubjectsForTeacher } from '@/firebase/db/academic';
+import { getSubjectsForTeacher, getClasses } from '@/firebase/db/academic';
 import { Calendar, Clock } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -15,6 +15,7 @@ export default function TeacherSchedulePage() {
   
   const [schedules, setSchedules] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [classesMap, setClassesMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,12 +26,17 @@ export default function TeacherSchedulePage() {
 
   const loadSchedule = async () => {
     setLoading(true);
-    const [fetchedSchedules, fetchedSubjects] = await Promise.all([
+    const [fetchedSchedules, fetchedSubjects, fetchedClasses] = await Promise.all([
       getSchedulesForTeacher(schoolId, currentUser.uid),
-      getSubjectsForTeacher(schoolId, currentUser.uid)
+      getSubjectsForTeacher(schoolId, currentUser.uid),
+      getClasses(schoolId)
     ]);
     setSchedules(fetchedSchedules);
     setSubjects(fetchedSubjects);
+    
+    const cmap = {};
+    fetchedClasses.forEach(c => { cmap[c.id] = c.name; });
+    setClassesMap(cmap);
     setLoading(false);
   };
 
@@ -71,6 +77,7 @@ export default function TeacherSchedulePage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {daySchedules.map(sch => {
                       const subject = subjects.find(s => s.id === sch.subjectId);
+                      const className = classesMap[sch.classId] || 'Class';
                       return (
                         <div key={sch.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem', backgroundColor: 'var(--surface-hover)', borderRadius: '0.5rem' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--text-secondary)', minWidth: '45px' }}>
@@ -81,7 +88,7 @@ export default function TeacherSchedulePage() {
                           <div>
                             <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{subject?.name || 'Unknown Subject'}</div>
                             <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                              Class ID: {sch.classId} {sch.sectionId ? `(Sec: ${sch.sectionId})` : ''}
+                              {className}
                             </div>
                           </div>
                         </div>

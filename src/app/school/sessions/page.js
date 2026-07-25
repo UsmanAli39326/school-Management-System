@@ -6,25 +6,37 @@ import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import Input from '@/components/common/Input';
+import Select from '@/components/common/Select';
 import { useAuth } from '@/hooks/useAuth';
-import { getSessions, createSession, updateSession } from '@/firebase/db/academic';
-import { Plus, CheckCircle, CalendarDays } from 'lucide-react';
+import { getSessions, createSession, updateSession, getClasses } from '@/firebase/db/academic';
+import { getStudentsBySchool, updateStudent } from '@/firebase/db/students';
+import { Plus, CheckCircle, CalendarDays, ArrowUpRight, GraduationCap } from 'lucide-react';
+import { useAlert } from '@/context/AlertContext';
 
 export default function AcademicSessionsPage() {
   const { schoolId } = useAuth();
+  const { showAlert } = useAlert();
   
   const [sessions, setSessions] = useState([]);
+  const [classList, setClassList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
   
   const [newSessionName, setNewSessionName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Promotion state
+  const [fromClassId, setFromClassId] = useState('');
+  const [toClassId, setToClassId] = useState('');
+  const [isPromoting, setIsPromoting] = useState(false);
+
   useEffect(() => {
     if (schoolId) {
       loadSessions();
+      getClasses(schoolId).then(setClassList);
     }
   }, [schoolId]);
 
@@ -52,9 +64,10 @@ export default function AcademicSessionsPage() {
       setStartDate('');
       setEndDate('');
       loadSessions();
+      showAlert("Session created successfully", "success");
     } catch (error) {
       console.error('Error creating session:', error);
-      alert('Failed to create session');
+      showAlert('Failed to create session', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -73,6 +86,73 @@ export default function AcademicSessionsPage() {
     }
   };
 
+  const handlePromoteStudents = async (e) => {
+    e.preventDefault();
+    if (!fromClassId || !toClassId) {
+      showAlert('Please select both From Class and To Class.', 'error');
+      return;
+    }
+    if (fromClassId === toClassId) {
+      showAlert('From Class and To Class must be different.', 'error');
+      return;
+    }
+
+    const currentSession = sessions.find(s => s.isCurrent);
+    if (!currentSession) {
+      showAlert('Please set an active session first.', 'error');
+      return;
+    }
+
+    setIsPromoting(true);
+    try {
+      const allStudents = await getStudentsBySchool(schoolId);
+      const eligibleStudents = allStudents.filter(
+        s => s.classId === fromClassId && s.academicDetails?.status === 'ACTIVE'
+      );
+
+      if (eligibleStudents.length === 0) {
+        showAlert('No active students found in the selected From Class.', 'error');
+        setIsPromoting(false);
+        return;
+      }
+
+      const fromClassName = classList.find(c => c.id === fromClassId)?.name || 'Class';
+      const toClassName = classList.find(c => c.id === toClassId)?.name || 'Class';
+
+      if (!confirm(`Promote ${eligibleStudents.length} students from ${fromClassName} to ${toClassName} for session ${currentSession.name}?`)) {
+        setIsPromoting(false);
+        return;
+      }
+
+      let count = 0;
+      for (const st of eligibleStudents) {
+        await updateStudent(st.id, {
+          classId: toClassId,
+          sectionId: '', // Reset section for new class assignment
+          sessionId: currentSession.id,
+          sessionName: currentSession.name,
+          academicDetails: {
+            ...st.academicDetails,
+            previousClass: fromClassName
+          }
+        });
+        count++;
+      }
+
+      showAlert(`Successfully promoted ${count} students to ${toClassName}!`, 'success');
+      setIsPromoteModalOpen(false);
+      setFromClassId('');
+      setToClassId('');
+    } catch (error) {
+      console.error('Failed to promote students:', error);
+      showAlert('Failed to promote students. Please try again.', 'error');
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
+  const activeSessionObj = sessions.find(s => s.isCurrent);
+
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN']}>
       <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -82,9 +162,14 @@ export default function AcademicSessionsPage() {
             <h1>Academic Sessions</h1>
             <p style={{ color: 'var(--text-secondary)' }}>Manage school years and active session</p>
           </div>
-          <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-            Add Session
-          </Button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <Button variant="outline" icon={GraduationCap} onClick={() => setIsPromoteModalOpen(true)}>
+              Promote Students
+            </Button>
+            <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+              Add Session
+            </Button>
+          </div>
         </div>
 
         {loading ? (
@@ -157,6 +242,7 @@ export default function AcademicSessionsPage() {
           </div>
         )}
 
+        {/* Add Session Modal */}
         <Modal 
           isOpen={isModalOpen} 
           onClose={() => !isSubmitting && setIsModalOpen(false)} 
@@ -194,6 +280,53 @@ export default function AcademicSessionsPage() {
               </Button>
               <Button type="submit" variant="primary" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating...' : 'Create Session'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Promote Students Modal */}
+        <Modal
+          isOpen={isPromoteModalOpen}
+          onClose={() => !isPromoting && setIsPromoteModalOpen(false)}
+          title="Promote Students to Next Class"
+        >
+          <form onSubmit={handlePromoteStudents} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Promote active students from one class level to the next for the active session{' '}
+              <strong>({activeSessionObj?.name || 'Current Session'})</strong>.
+            </p>
+
+            <Select
+              label="From Class (Current Class) *"
+              value={fromClassId}
+              onChange={(e) => setFromClassId(e.target.value)}
+              placeholder="Select Current Class"
+              required
+            >
+              {classList.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+
+            <Select
+              label="To Class (Promote Into) *"
+              value={toClassId}
+              onChange={(e) => setToClassId(e.target.value)}
+              placeholder="Select Target Class"
+              required
+            >
+              {classList.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+              <Button type="button" variant="outline" onClick={() => setIsPromoteModalOpen(false)} disabled={isPromoting}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={isPromoting || !fromClassId || !toClassId}>
+                {isPromoting ? 'Promoting...' : 'Promote Class'}
               </Button>
             </div>
           </form>

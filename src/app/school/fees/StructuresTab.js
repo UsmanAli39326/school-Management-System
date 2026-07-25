@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
@@ -9,12 +9,14 @@ import Modal from '@/components/common/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import { createFeeStructure, getFeeStructures, deleteFeeStructure } from '@/firebase/db/fees';
 import { Plus, Trash2, Settings, DollarSign } from 'lucide-react';
+import { useAlert } from '@/context/AlertContext';
 
 const LEVELS = ['Nursery', 'Primary', 'Middle', 'High'];
 const FEE_TYPES = ['Admission', 'Tuition', 'Annual', 'Exam', 'Misc'];
 
-export default function FeeStructuresPage() {
+export default function StructuresTab() {
   const { schoolId } = useAuth();
+  const { showAlert } = useAlert();
   
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function FeeStructuresPage() {
 
   const handleCreate = async () => {
     if (!formData.amount) {
-      alert("Please enter a valid amount.");
+      showAlert("Please enter a valid amount.", "error");
       return;
     }
     
@@ -60,8 +62,7 @@ export default function FeeStructuresPage() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT']}>
-      <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <div>
@@ -176,7 +177,6 @@ export default function FeeStructuresPage() {
           </div>
         </Modal>
 
-      </div>
-    </ProtectedRoute>
+    </div>
   );
 }

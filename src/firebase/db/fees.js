@@ -66,12 +66,32 @@ export async function deleteFeeStructure(structureId) {
 // ----------------------------------------------------------------------
 
 export async function generateInvoicesForClass(schoolId, classId, students, feeStructures, feeMonth) {
+  // Query existing invoices for this month to prevent overwriting paid or existing invoices
+  const existingQuery = query(
+    collection(db, INVOICES_COL),
+    where('schoolId', '==', schoolId),
+    where('feeMonth', '==', feeMonth)
+  );
+  const existingSnap = await getDocs(existingQuery);
+  const existingInvoicesMap = new Map();
+  existingSnap.forEach((d) => {
+    existingInvoicesMap.set(d.id, d.data());
+  });
+
   const batch = writeBatch(db);
   const generated = [];
+  let skippedCount = 0;
 
   for (const student of students) {
     for (const fs of feeStructures) {
       const invoiceId = `inv_${student.id}_${fs.id}_${feeMonth}`;
+      
+      // Do NOT overwrite if an invoice already exists for this student, fee structure, and month
+      if (existingInvoicesMap.has(invoiceId)) {
+        skippedCount++;
+        continue;
+      }
+
       const docRef = doc(db, INVOICES_COL, invoiceId);
       
       // Check for custom fee concession for this student for this fee type
@@ -85,6 +105,8 @@ export async function generateInvoicesForClass(schoolId, classId, students, feeS
         schoolId,
         invoiceNumber: `INV-${Date.now()}-${Math.floor(Math.random()*1000)}`,
         studentId: student.id,
+        sessionId: sessionData?.id || student.sessionId || '',
+        sessionName: sessionData?.name || student.sessionName || '',
         feeMonth,
         feeType: fs.feeType,
         amount: invoiceAmount,
@@ -119,8 +141,10 @@ export async function generateInvoicesForClass(schoolId, classId, students, feeS
     }
   }
 
-  await batch.commit();
-  return generated;
+  if (generated.length > 0) {
+    await batch.commit();
+  }
+  return { generated, createdCount: generated.length, skippedCount };
 }
 
 export async function getInvoices(schoolId, studentId = null) {
