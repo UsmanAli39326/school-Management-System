@@ -277,6 +277,85 @@ export default function LoginPage() {
               </form>
             )}
 
+            {/* Demo Accounts (For testing) */}
+            <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--surface-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Quick Demo Accounts
+                </span>
+                <Badge variant="info" icon={ShieldCheck}>Phase 1 Setup</Badge>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDemoPreset('School Admin', 'admin@apexschool.com', 'school123')}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid var(--surface-border)',
+                    backgroundColor: 'var(--surface-bg)',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left'
+                  }}
+                >
+                  🏫 School Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemoPreset('Accountant', 'accountant@apexschool.com', 'accountant123')}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid var(--surface-border)',
+                    backgroundColor: 'var(--surface-bg)',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left'
+                  }}
+                >
+                  💰 Accountant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemoPreset('Receptionist', 'receptionist@apexschool.com', 'reception123')}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid var(--surface-border)',
+                    backgroundColor: 'var(--surface-bg)',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left'
+                  }}
+                >
+                  📋 Receptionist
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemoPreset('Teacher', 'teacher@apexschool.com', 'teacher123')}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid var(--surface-border)',
+                    backgroundColor: 'var(--surface-bg)',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left'
+                  }}
+                >
+                  👨‍🏫 Teacher
+                </button>
+              </div>
+            </div>
 
           </Card>
         </div>
