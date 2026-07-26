@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,12 +21,9 @@ import {
   Menu,
   X,
   GraduationCap,
+  Settings,
 } from 'lucide-react';
 
-// Nav is grouped into small labeled sections rather than one flat list --
-// this is the structural rhythm that replaces "depth via gradient": clear
-// grouping, hairline dividers, and one active-state fill in the school's
-// own brand color.
 const NAV_SECTIONS = [
   {
     label: 'Overview',
@@ -67,6 +64,7 @@ const NAV_SECTIONS = [
     label: 'Administration',
     items: [
       { name: 'Staff', href: '/school/staff', icon: UserCog, roles: ['SCHOOL_ADMIN'] },
+      { name: 'School Settings', href: '/school/settings', icon: Settings, roles: ['SCHOOL_ADMIN'] },
     ],
   },
 ];
@@ -92,7 +90,7 @@ export default function SchoolShell({ children }) {
   const [activeSession, setActiveSession] = useState(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, role, schoolId, logout } = useAuth();
+  const { currentUser, role, schoolId, schoolDetails, logout } = useAuth();
 
   useEffect(() => {
     if (schoolId) {
@@ -119,9 +117,12 @@ export default function SchoolShell({ children }) {
     router.push('/login');
   };
 
+  const schoolLogo = schoolDetails?.logoUrl || '';
+  const schoolName = schoolDetails?.name || 'School Portal';
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--app-bg)' }}>
-      {/* Sidebar Navigation -- solid ink fill, same structural family as SuperAdminShell */}
+      {/* Sidebar Navigation */}
       <aside
         style={{
           width: sidebarOpen ? '260px' : '76px',
@@ -159,13 +160,18 @@ export default function SchoolShell({ children }) {
               justifyContent: 'center',
               color: '#ffffff',
               flexShrink: 0,
+              overflow: 'hidden',
             }}>
-              <GraduationCap size={20} />
+              {schoolLogo ? (
+                <img src={schoolLogo} alt="School Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <GraduationCap size={20} />
+              )}
             </div>
             {sidebarOpen && (
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.9375rem', color: '#ffffff', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  School Portal
+                  {schoolName}
                 </div>
                 <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.5)' }}>{ROLE_LABEL[role] || 'Staff'}</div>
               </div>
@@ -206,7 +212,7 @@ export default function SchoolShell({ children }) {
                         gap: '0.75rem',
                         padding: '0.5625rem 0.75rem',
                         borderRadius: '0.375rem',
-                        color: isActive ? '#ffffff' : 'rgba(255,255,255,0.62)',
+                        color: isActive ? 'var(--primary-text, #ffffff)' : 'rgba(255,255,255,0.62)',
                         backgroundColor: isActive ? 'var(--primary-color)' : 'transparent',
                         fontWeight: isActive ? 600 : 500,
                         fontSize: '0.8125rem',
@@ -268,10 +274,11 @@ export default function SchoolShell({ children }) {
 
       {/* Main Page Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Top Header */}
+        {/* Top Header with Signature Brand Accent Border */}
         <header style={{
           height: '64px',
           backgroundColor: 'var(--surface-bg)',
+          borderTop: '3px solid var(--primary-color)',
           borderBottom: '1px solid var(--surface-border)',
           display: 'flex',
           alignItems: 'center',
@@ -290,7 +297,14 @@ export default function SchoolShell({ children }) {
             >
               <Menu size={19} />
             </button>
-            <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
+              {schoolLogo && (
+                <img
+                  src={schoolLogo}
+                  alt="School Logo"
+                  style={{ width: '1.75rem', height: '1.75rem', objectFit: 'contain', borderRadius: '0.25rem', flexShrink: 0 }}
+                />
+              )}
               <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeItem?.name || 'School Portal'}
               </div>
@@ -316,7 +330,7 @@ export default function SchoolShell({ children }) {
             </span>
             <div style={{
               width: '2rem', height: '2rem', borderRadius: '0.375rem',
-              backgroundColor: 'var(--primary-color)', color: '#ffffff',
+              backgroundColor: 'var(--primary-color)', color: 'var(--primary-text, #ffffff)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: '0.75rem',
             }}>

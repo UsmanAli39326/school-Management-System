@@ -64,3 +64,17 @@ export async function updateUserStatus(uid, status) {
     updatedAt: serverTimestamp(),
   });
 }
+
+/**
+ * Update user profile details (role, department, phone, status, etc.)
+ */
+export async function updateUserProfile(uid, updates) {
+  const userRef = doc(db, COLLECTION_NAME, uid);
+  const cleanUpdates = {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  };
+  await updateDoc(userRef, cleanUpdates);
+  return cleanUpdates;
+}
+

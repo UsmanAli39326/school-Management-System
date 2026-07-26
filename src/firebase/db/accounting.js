@@ -27,8 +27,10 @@ export async function addExpense(schoolId, data, createdBy) {
     expenseId,
     schoolId,
     category: data.category || 'Miscellaneous',
+    vendorName: data.vendorName || '',
+    vendorRef: data.vendorRef || '',
     amount: Number(data.amount) || 0,
-    date: data.date ? new Date(data.date) : new Date(), // Storing as JS Date object which Firestore converts
+    date: data.date ? new Date(data.date) : new Date(),
     description: data.description || '',
     receiptUrl: data.receiptUrl || '',
     createdBy: createdBy || '',
@@ -70,15 +72,16 @@ export async function deleteExpense(expenseId) {
 // FINANCIAL SUMMARY
 // ----------------------------------------------------------------------
 
-export async function getMonthlyFinancialSummary(schoolId) {
+export async function getMonthlyFinancialSummary(schoolId, year = null, month = null) {
   try {
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const targetYear = year !== null ? Number(year) : now.getFullYear();
+    const targetMonth = month !== null ? Number(month) : now.getMonth();
 
-    // 1. Get Income (from Fees)
-    const totalIncome = await getMonthlyCollection(schoolId);
+    const monthStart = new Date(targetYear, targetMonth, 1).getTime();
+    const monthEnd = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999).getTime();
 
-    // 2. Get Expenses
+    // 1. Get Expenses
     const q = query(
       collection(db, EXPENSES_COL),
       where('schoolId', '==', schoolId)
@@ -86,21 +89,31 @@ export async function getMonthlyFinancialSummary(schoolId) {
     const snapshot = await getDocs(q);
     
     let totalExpenses = 0;
+    const categoryBreakdown = {};
+
     snapshot.forEach(d => {
       const exp = d.data();
       const expTime = exp.date?.toMillis?.() || (exp.date instanceof Date ? exp.date.getTime() : 0);
-      if (expTime >= currentMonthStart) {
-        totalExpenses += (exp.amount || 0);
+      if (expTime >= monthStart && expTime <= monthEnd) {
+        const amt = exp.amount || 0;
+        totalExpenses += amt;
+        const cat = exp.category || 'Miscellaneous';
+        categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + amt;
       }
     });
+
+    // 2. Get Income (from Fees)
+    const totalIncome = await getMonthlyCollection(schoolId);
 
     return {
       income: totalIncome,
       expenses: totalExpenses,
-      netBalance: totalIncome - totalExpenses
+      netBalance: totalIncome - totalExpenses,
+      categoryBreakdown
     };
   } catch (error) {
     console.error('Error calculating financial summary:', error);
-    return { income: 0, expenses: 0, netBalance: 0 };
+    return { income: 0, expenses: 0, netBalance: 0, categoryBreakdown: {} };
   }
 }
+

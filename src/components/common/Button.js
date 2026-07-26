@@ -12,6 +12,7 @@ export default function Button({
   isLoading = false,
   disabled = false,
   icon: Icon,
+  iconPosition = 'left',
   className,
   type = 'button',
   ...props
@@ -21,7 +22,14 @@ export default function Button({
     secondary: styles.btnSecondary,
     outline: styles.btnOutline,
     danger: styles.btnDanger,
+    ghost: styles.btnSecondary,
   }[variant] || styles.btnPrimary;
+
+  const renderIcon = () => {
+    if (isLoading) return <Loader2 className="animate-spin" size={18} aria-hidden="true" />;
+    if (Icon) return <Icon size={18} aria-hidden="true" />;
+    return null;
+  };
 
   return (
     <button
@@ -31,12 +39,10 @@ export default function Button({
       aria-busy={isLoading ? 'true' : undefined}
       {...props}
     >
-      {isLoading ? (
-        <Loader2 className="animate-spin" size={18} aria-hidden="true" />
-      ) : Icon ? (
-        <Icon size={18} aria-hidden="true" />
-      ) : null}
-      <span>{children}</span>
+      {iconPosition === 'left' && renderIcon()}
+      {children && <span>{children}</span>}
+      {iconPosition === 'right' && renderIcon()}
     </button>
   );
 }
+

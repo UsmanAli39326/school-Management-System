@@ -7,10 +7,11 @@ import Button from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import Input from '@/components/common/Input';
 import Select from '@/components/common/Select';
+import ConfirmationModal from '@/components/common/ConfirmationModal';
 import { useAuth } from '@/hooks/useAuth';
 import { getClasses, getSectionsForClass, getSubjectsForClass } from '@/firebase/db/academic';
-import { createSchedule, getSchedulesForClass, deleteSchedule, checkTeacherConflict, checkClassSectionConflict } from '@/firebase/db/schedules';
-import { Calendar, Trash2, Plus, Clock, Layers } from 'lucide-react';
+import { createSchedule, getSchedulesForClass, deleteSchedule, checkTeacherConflict, checkClassSectionConflict, checkRoomConflict } from '@/firebase/db/schedules';
+import { Calendar, Trash2, Plus, Clock, Layers, AlertTriangle, Room } from 'lucide-react';
 import { useAlert } from '@/context/AlertContext';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -36,9 +37,14 @@ export default function TimetablePage() {
     dayOfWeek: 'Monday',
     sectionId: '',
     subjectId: '',
+    roomNumber: '',
     startTime: '09:00',
     endTime: '09:45'
   });
+
+  // Delete slot confirmation modal (UX §7)
+  const [slotToDelete, setSlotToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (schoolId) {
@@ -59,25 +65,36 @@ export default function TimetablePage() {
 
   const loadClasses = async () => {
     setLoading(true);
-    const fetchedClasses = await getClasses(schoolId);
-    setClasses(fetchedClasses);
-    if (fetchedClasses.length > 0) {
-      setSelectedClassId(fetchedClasses[0].id);
+    try {
+      const fetchedClasses = await getClasses(schoolId);
+      setClasses(fetchedClasses);
+      if (fetchedClasses.length > 0) {
+        setSelectedClassId(fetchedClasses[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadTimetableData = async (classId) => {
     setLoading(true);
-    const [fetchedSections, fetchedSubjects, fetchedSchedules] = await Promise.all([
-      getSectionsForClass(schoolId, classId),
-      getSubjectsForClass(schoolId, classId),
-      getSchedulesForClass(schoolId, classId)
-    ]);
-    setSections(fetchedSections);
-    setSubjects(fetchedSubjects);
-    setSchedules(fetchedSchedules);
-    setLoading(false);
+    try {
+      const [fetchedSections, fetchedSubjects, fetchedSchedules] = await Promise.all([
+        getSectionsForClass(schoolId, classId),
+        getSubjectsForClass(schoolId, classId),
+        getSchedulesForClass(schoolId, classId)
+      ]);
+      setSections(fetchedSections);
+      setSubjects(fetchedSubjects);
+      setSchedules(fetchedSchedules);
+    } catch (err) {
+      console.error('Error fetching timetable data:', err);
+      showAlert('Failed to load timetable entries', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenModal = () => {
@@ -85,6 +102,7 @@ export default function TimetablePage() {
       dayOfWeek: 'Monday',
       sectionId: selectedSectionId !== 'ALL' ? selectedSectionId : '',
       subjectId: '',
+      roomNumber: '',
       startTime: '09:00',
       endTime: '09:45'
     });
@@ -106,7 +124,7 @@ export default function TimetablePage() {
       const teacherId = subject?.teacherId || null;
       const teacherName = subject?.teacherName || 'Teacher';
 
-      // 1. Check if teacher is already allotted to another class/section at the same time
+      // 1. Check Teacher Conflict
       if (teacherId) {
         const teacherConflict = await checkTeacherConflict(
           schoolId,
@@ -116,13 +134,13 @@ export default function TimetablePage() {
           formData.endTime
         );
         if (teacherConflict) {
-          showAlert(`Conflict Detected! Teacher (${teacherName}) is already allotted to another class/section on ${formData.dayOfWeek} between ${teacherConflict.startTime} and ${teacherConflict.endTime}.`, 'error');
+          showAlert(`Teacher Conflict! ${teacherName} is already allotted to another class/section on ${formData.dayOfWeek} (${teacherConflict.startTime} - ${teacherConflict.endTime}).`, 'error');
           setIsSubmitting(false);
           return;
         }
       }
 
-      // 2. Check if this class/section already has a slot scheduled at the same time
+      // 2. Check Class/Section Conflict
       const classConflict = await checkClassSectionConflict(
         schoolId,
         selectedClassId,
@@ -132,9 +150,25 @@ export default function TimetablePage() {
         formData.endTime
       );
       if (classConflict) {
-        showAlert(`Conflict Detected! This class/section already has a slot scheduled on ${formData.dayOfWeek} between ${classConflict.startTime} and ${classConflict.endTime}.`, 'error');
+        showAlert(`Class Conflict! This section already has a class scheduled on ${formData.dayOfWeek} between ${classConflict.startTime} and ${classConflict.endTime}.`, 'error');
         setIsSubmitting(false);
         return;
+      }
+
+      // 3. Check Room Conflict
+      if (formData.roomNumber && formData.roomNumber.trim()) {
+        const roomConflict = await checkRoomConflict(
+          schoolId,
+          formData.roomNumber.trim(),
+          formData.dayOfWeek,
+          formData.startTime,
+          formData.endTime
+        );
+        if (roomConflict) {
+          showAlert(`Room Collision! Room "${formData.roomNumber}" is already booked on ${formData.dayOfWeek} between ${roomConflict.startTime} and ${roomConflict.endTime}.`, 'error');
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       await createSchedule(schoolId, {
@@ -142,29 +176,39 @@ export default function TimetablePage() {
         sectionId: formData.sectionId || null,
         subjectId: formData.subjectId,
         teacherId: teacherId,
+        roomNumber: formData.roomNumber.trim() || '',
         dayOfWeek: formData.dayOfWeek,
         startTime: formData.startTime,
         endTime: formData.endTime
       });
+
       setIsModalOpen(false);
       loadTimetableData(selectedClassId);
-      showAlert("Schedule added successfully", "success");
+      showAlert('Timetable slot created successfully', 'success');
     } catch (error) {
       console.error('Error adding schedule:', error);
-      showAlert('Failed to add schedule', 'error');
+      showAlert('Failed to add timetable slot', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteSchedule = async (scheduleId) => {
-    if (confirm('Delete this schedule entry?')) {
-      await deleteSchedule(scheduleId);
+  const handleConfirmDeleteSlot = async () => {
+    if (!slotToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteSchedule(slotToDelete.id);
+      showAlert('Timetable slot deleted', 'success');
+      setSlotToDelete(null);
       loadTimetableData(selectedClassId);
+    } catch (err) {
+      console.error('Error deleting schedule slot:', err);
+      showAlert('Failed to delete slot', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  // Organize schedules into a grid structure, filtered by section
   const getSchedulesForDay = (day) => {
     return schedules
       .filter(s => s.dayOfWeek === day)
@@ -177,12 +221,13 @@ export default function TimetablePage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        {/* Page Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1>Manage Timetable</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Create and manage weekly schedules by class & section</p>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Master Timetable</h1>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Build weekly period schedules, assign rooms, and prevent timetable collisions</p>
           </div>
           <Button variant="primary" icon={Plus} onClick={handleOpenModal} disabled={!selectedClassId || subjects.length === 0}>
             Add Time Slot
@@ -190,12 +235,15 @@ export default function TimetablePage() {
         </div>
 
         {loading && classes.length === 0 ? (
-          <p>Loading...</p>
+          <div style={{ height: '300px', backgroundColor: 'var(--surface-border)', borderRadius: '0.75rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
         ) : (
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            {/* Left Sidebar: Classes */}
-            <div style={{ width: '250px', flexShrink: 0 }}>
-              <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Select Class</h3>
+          <div style={{ display: 'flex', gap: '1.75rem', flexWrap: 'wrap' }}>
+            
+            {/* Left Sidebar: Class Selector */}
+            <div style={{ width: '240px', flexShrink: 0 }}>
+              <h3 style={{ marginBottom: '0.75rem', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Select Class
+              </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {classes.length === 0 ? (
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No classes found.</p>
@@ -207,14 +255,14 @@ export default function TimetablePage() {
                       style={{
                         padding: '0.75rem 1rem',
                         textAlign: 'left',
-                        borderRadius: '0.5rem',
+                        borderRadius: '0.625rem',
                         border: '1px solid',
-                        borderColor: selectedClassId === cls.id ? 'var(--primary-color)' : 'var(--border-color)',
-                        backgroundColor: selectedClassId === cls.id ? 'var(--primary-light)' : 'var(--bg-color)',
+                        borderColor: selectedClassId === cls.id ? 'var(--primary-color)' : 'var(--surface-border)',
+                        backgroundColor: selectedClassId === cls.id ? 'var(--primary-light)' : 'var(--surface-card)',
                         color: selectedClassId === cls.id ? 'var(--primary-color)' : 'var(--text-primary)',
-                        fontWeight: selectedClassId === cls.id ? 600 : 400,
+                        fontWeight: selectedClassId === cls.id ? 700 : 500,
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.15s ease'
                       }}
                     >
                       {cls.name}
@@ -224,15 +272,15 @@ export default function TimetablePage() {
               </div>
             </div>
 
-            {/* Right Content: Timetable */}
-            <div style={{ flex: 1, overflowX: 'auto' }}>
+            {/* Right Main Timetable Grid */}
+            <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {selectedClassId ? (
                 <>
                   {/* Section Selector Pills */}
                   {sections.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Layers size={14} /> Section:
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.84375rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Layers size={15} /> Section:
                       </span>
                       <button
                         onClick={() => setSelectedSectionId('ALL')}
@@ -240,13 +288,12 @@ export default function TimetablePage() {
                           padding: '0.35rem 0.85rem',
                           borderRadius: '1rem',
                           fontSize: '0.8125rem',
-                          fontWeight: 500,
+                          fontWeight: 600,
                           border: '1px solid',
-                          borderColor: selectedSectionId === 'ALL' ? 'var(--primary-color)' : 'var(--border-color)',
+                          borderColor: selectedSectionId === 'ALL' ? 'var(--primary-color)' : 'var(--surface-border)',
                           backgroundColor: selectedSectionId === 'ALL' ? 'var(--primary-color)' : 'transparent',
                           color: selectedSectionId === 'ALL' ? '#fff' : 'var(--text-primary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
+                          cursor: 'pointer'
                         }}
                       >
                         All Sections
@@ -259,13 +306,12 @@ export default function TimetablePage() {
                             padding: '0.35rem 0.85rem',
                             borderRadius: '1rem',
                             fontSize: '0.8125rem',
-                            fontWeight: 500,
+                            fontWeight: 600,
                             border: '1px solid',
-                            borderColor: selectedSectionId === sec.id ? 'var(--primary-color)' : 'var(--border-color)',
+                            borderColor: selectedSectionId === sec.id ? 'var(--primary-color)' : 'var(--surface-border)',
                             backgroundColor: selectedSectionId === sec.id ? 'var(--primary-color)' : 'transparent',
                             color: selectedSectionId === sec.id ? '#fff' : 'var(--text-primary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
+                            cursor: 'pointer'
                           }}
                         >
                           Section {sec.name}
@@ -275,67 +321,77 @@ export default function TimetablePage() {
                   )}
 
                   {subjects.length === 0 ? (
-                    <Card style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      No subjects configured for this class yet. Please add subjects first before building a timetable.
+                    <Card style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      No subjects cataloged for this class yet. Please add subjects first before building a timetable.
                     </Card>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                       {DAYS_OF_WEEK.map(day => {
                         const daySchedules = getSchedulesForDay(day);
                         return (
                           <Card key={day} style={{ padding: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
                               <Calendar size={18} style={{ color: 'var(--primary-color)' }} />
                               {day}
                             </h3>
 
                             {daySchedules.length === 0 ? (
-                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No classes scheduled for {day}</div>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No periods scheduled for {day}</div>
                             ) : (
-                              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
                                 {daySchedules.map(sch => {
                                   const subject = subjects.find(s => s.id === sch.subjectId);
                                   const section = sections.find(sec => sec.id === sch.sectionId);
                                   return (
                                     <div key={sch.id} style={{
                                       padding: '1rem',
-                                      border: '1px solid var(--border-color)',
-                                      borderRadius: '0.5rem',
-                                      backgroundColor: 'var(--bg-color)',
-                                      minWidth: '220px',
-                                      position: 'relative'
+                                      border: '1px solid var(--surface-border)',
+                                      borderRadius: '0.625rem',
+                                      backgroundColor: 'var(--surface-card)',
+                                      position: 'relative',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      justifyContent: 'space-between',
+                                      gap: '0.5rem'
                                     }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem', paddingRight: '1.5rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                          <Clock size={12} />
-                                          {sch.startTime} - {sch.endTime}
+                                      <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem', paddingRight: '1.5rem' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-color)' }}>
+                                            <Clock size={13} />
+                                            {sch.startTime} - {sch.endTime}
+                                          </div>
+                                          {section && (
+                                            <span style={{
+                                              fontSize: '0.7rem',
+                                              padding: '0.1rem 0.4rem',
+                                              borderRadius: '0.25rem',
+                                              backgroundColor: 'var(--primary-light)',
+                                              color: 'var(--primary-color)',
+                                              fontWeight: 700
+                                            }}>
+                                              Sec {section.name}
+                                            </span>
+                                          )}
                                         </div>
-                                        {section && (
-                                          <span style={{
-                                            fontSize: '0.7rem',
-                                            padding: '0.1rem 0.4rem',
-                                            borderRadius: '0.25rem',
-                                            backgroundColor: 'var(--primary-light)',
-                                            color: 'var(--primary-color)',
-                                            fontWeight: 600
-                                          }}>
-                                            Sec {section.name}
-                                          </span>
+                                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                                          {subject ? subject.name : 'Unknown Subject'}
+                                        </div>
+                                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                                          Teacher: {subject?.teacherName || 'Unassigned'}
+                                        </div>
+                                        {sch.roomNumber && (
+                                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem', fontWeight: 500 }}>
+                                            Room: {sch.roomNumber}
+                                          </div>
                                         )}
-                                      </div>
-                                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                                        {subject ? subject.name : 'Unknown Subject'}
-                                      </div>
-                                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                                        {subject?.teacherName || 'No Teacher'}
                                       </div>
 
                                       <button
-                                        onClick={() => handleDeleteSchedule(sch.id)}
-                                        style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
-                                        title="Delete Slot"
+                                        onClick={() => setSlotToDelete(sch)}
+                                        style={{ position: 'absolute', top: '0.625rem', right: '0.625rem', background: 'none', border: 'none', color: 'var(--status-danger)', cursor: 'pointer' }}
+                                        title="Delete Period Slot"
                                       >
-                                        <Trash2 size={14} />
+                                        <Trash2 size={15} />
                                       </button>
                                     </div>
                                   );
@@ -349,21 +405,22 @@ export default function TimetablePage() {
                   )}
                 </>
               ) : (
-                <Card style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  Please select a class from the left.
+                <Card style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Please select a class level from the left panel.
                 </Card>
               )}
             </div>
+
           </div>
         )}
 
-        {/* Add Timetable Modal */}
-        <Modal isOpen={isModalOpen} onClose={() => !isSubmitting && setIsModalOpen(false)} title="Add Timetable Slot">
+        {/* Modal for Adding Slot */}
+        <Modal isOpen={isModalOpen} onClose={() => !isSubmitting && setIsModalOpen(false)} title="Add Timetable Period Slot">
           <form onSubmit={handleAddSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <Select
-                label="Day of Week"
+                label="Day of Week *"
                 value={formData.dayOfWeek}
                 onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
                 required
@@ -386,44 +443,63 @@ export default function TimetablePage() {
             </div>
 
             <Select
-              label="Subject"
+              label="Subject *"
               value={formData.subjectId}
               onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
               placeholder="-- Select Subject --"
               required
             >
               {subjects.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.teacherName || 'No Teacher'})</option>
+                <option key={s.id} value={s.id}>{s.name} ({s.teacherName || 'No Teacher Assigned'})</option>
               ))}
             </Select>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <Input
-                label="Start Time"
+                label="Start Time *"
                 type="time"
                 value={formData.startTime}
                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                 required
               />
               <Input
-                label="End Time"
+                label="End Time *"
                 type="time"
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                 required
               />
+              <Input
+                label="Room / Lab"
+                placeholder="e.g. 101, Lab B"
+                value={formData.roomNumber}
+                onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
+              />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : 'Add Slot'}
+              <Button type="submit" variant="primary" disabled={isSubmitting} isLoading={isSubmitting}>
+                Add Slot
               </Button>
             </div>
           </form>
         </Modal>
+
+        {/* Delete Confirmation Modal (UX §7) */}
+        <ConfirmationModal
+          isOpen={!!slotToDelete}
+          onClose={() => setSlotToDelete(null)}
+          onConfirm={handleConfirmDeleteSlot}
+          title="Delete Period Time Slot?"
+          description="Are you sure you want to remove this timetable period entry? This action cannot be undone."
+          confirmText="Delete Slot"
+          cancelText="Cancel"
+          variant="danger"
+          isLoading={isDeleting}
+        />
 
       </div>
     </ProtectedRoute>

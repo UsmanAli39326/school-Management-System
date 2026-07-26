@@ -44,10 +44,10 @@
   --status-info: #0284c7;
   --status-info-bg: #e0f2fe;
 
-  /* Customizable School Brand Tokens */
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
+  /* Customizable School Brand Tokens (Default Fallback: Red #dc2626) */
+  --primary-color: #dc2626;
+  --primary-hover: #b91c1c;
+  --primary-light: #fef2f2;
   --secondary-accent: #7c3aed;
   --secondary-hover: #6d28d9;
   --secondary-light: #f5f3ff;

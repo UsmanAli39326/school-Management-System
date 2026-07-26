@@ -5,10 +5,22 @@ import Link from 'next/link';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
+import PageHeader from '@/components/super-admin/PageHeader';
 import { getAllSchools } from '@/firebase/db/schools';
 import { getAllUsers } from '@/firebase/db/users';
 import { getActivityLogs } from '@/firebase/db/logs';
-import { Building2, Users, ShieldCheck, Activity, Plus, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+import {
+  Building2,
+  Users,
+  CheckCircle2,
+  Clock,
+  Plus,
+  ArrowRight,
+  Activity,
+  ShieldCheck,
+  Zap,
+  Inbox
+} from 'lucide-react';
 
 export default function SuperAdminDashboardPage() {
   const [schools, setSchools] = useState([]);
@@ -19,15 +31,20 @@ export default function SuperAdminDashboardPage() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [fetchedSchools, fetchedUsers, fetchedLogs] = await Promise.all([
-        getAllSchools(),
-        getAllUsers(),
-        getActivityLogs(10),
-      ]);
-      setSchools(fetchedSchools);
-      setUsers(fetchedUsers);
-      setLogs(fetchedLogs);
-      setLoading(false);
+      try {
+        const [fetchedSchools, fetchedUsers, fetchedLogs] = await Promise.all([
+          getAllSchools(),
+          getAllUsers(),
+          getActivityLogs(10)
+        ]);
+        setSchools(fetchedSchools || []);
+        setUsers(fetchedUsers || []);
+        setLogs(fetchedLogs || []);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, []);
@@ -36,159 +53,203 @@ export default function SuperAdminDashboardPage() {
   const trialSchoolsCount = schools.filter((s) => s.subscription?.status === 'TRIAL').length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* Header Banner */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Platform Dashboard</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Multi-school tenant metrics and platform analytics
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link href="/super-admin/schools">
-            <Button variant="primary" icon={Plus}>
-              Register School
-            </Button>
-          </Link>
-          <Link href="/super-admin/users">
-            <Button variant="secondary" icon={Users}>
-              Provision Admin
-            </Button>
-          </Link>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      {/* Standard Page Header (UX §1, §8, §17) */}
+      <PageHeader
+        title="Platform Dashboard"
+        subtitle="Overview of platform-wide statistics, active subscriptions, and real-time activity metrics."
+        actions={
+          <>
+            <Link href="/super-admin/schools">
+              <Button variant="primary" icon={Plus}>
+                Register School
+              </Button>
+            </Link>
+            <Link href="/super-admin/users">
+              <Button variant="secondary" icon={Users}>
+                Provision Admin
+              </Button>
+            </Link>
+          </>
+        }
+      />
+
+      {/* Analytics KPI Grid with Skeleton Loading (UX §4) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
+        {[
+          {
+            title: 'Total Schools',
+            count: schools.length,
+            icon: Building2,
+            bgColor: 'var(--primary-light)',
+            color: 'var(--primary-color)'
+          },
+          {
+            title: 'Active Tenants',
+            count: activeSchoolsCount,
+            icon: CheckCircle2,
+            bgColor: 'var(--status-success-bg)',
+            color: 'var(--status-success)'
+          },
+          {
+            title: 'Active Trials',
+            count: trialSchoolsCount,
+            icon: Clock,
+            bgColor: 'var(--secondary-light)',
+            color: 'var(--secondary-accent)'
+          },
+          {
+            title: 'Provisioned Users',
+            count: users.length,
+            icon: Users,
+            bgColor: 'var(--status-info-bg)',
+            color: 'var(--status-info)'
+          }
+        ].map((kpi, idx) => {
+          const Icon = kpi.icon;
+          return (
+            <Card key={idx} hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.375rem' }}>
+              <div
+                style={{
+                  width: '3.25rem',
+                  height: '3.25rem',
+                  borderRadius: '0.875rem',
+                  backgroundColor: kpi.bgColor,
+                  color: kpi.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <Icon size={24} />
+              </div>
+              <div style={{ width: '100%' }}>
+                <div style={{ fontSize: '0.84375rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                  {kpi.title}
+                </div>
+                {loading ? (
+                  <div
+                    style={{
+                      height: '1.75rem',
+                      width: '60%',
+                      backgroundColor: 'var(--surface-border)',
+                      borderRadius: '0.375rem',
+                      marginTop: '0.375rem',
+                      animation: 'pulse 1.5s infinite ease-in-out'
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                    {kpi.count}
+                  </div>
+                )}
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Analytics KPI Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-        <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
-          <div style={{
-            width: '3.25rem',
-            height: '3.25rem',
-            borderRadius: '0.875rem',
-            backgroundColor: 'var(--primary-light)',
-            color: 'var(--primary-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Building2 size={26} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Total Schools</div>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {loading ? '...' : schools.length}
-            </div>
-          </div>
-        </Card>
-
-        <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
-          <div style={{
-            width: '3.25rem',
-            height: '3.25rem',
-            borderRadius: '0.875rem',
-            backgroundColor: 'var(--status-success-bg)',
-            color: 'var(--status-success)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <CheckCircle2 size={26} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Active Tenants</div>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {loading ? '...' : activeSchoolsCount}
-            </div>
-          </div>
-        </Card>
-
-        <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
-          <div style={{
-            width: '3.25rem',
-            height: '3.25rem',
-            borderRadius: '0.875rem',
-            backgroundColor: 'var(--secondary-light)',
-            color: 'var(--secondary-accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Clock size={26} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Active Trials</div>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {loading ? '...' : trialSchoolsCount}
-            </div>
-          </div>
-        </Card>
-
-        <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
-          <div style={{
-            width: '3.25rem',
-            height: '3.25rem',
-            borderRadius: '0.875rem',
-            backgroundColor: 'var(--status-info-bg)',
-            color: 'var(--status-info)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Users size={26} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Provisioned Users</div>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {loading ? '...' : users.length}
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Main Grid: Registered Schools & Audit Logs */}
+      {/* Main Content Grid: Schools Overview & Real-Time Activity Log */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-        {/* Schools Summary Table */}
+        {/* Registered Schools Table */}
         <Card style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Registered Schools</h3>
-            <Link href="/super-admin/schools" style={{ fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span>View All</span>
+            <div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Registered School Tenants</h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Recent tenant onboarding overview</p>
+            </div>
+            <Link
+              href="/super-admin/schools"
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'var(--primary-color)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Manage All ({schools.length})</span>
               <ArrowRight size={16} />
             </Link>
           </div>
 
-          {schools.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No schools registered yet. Click "Register School" to onboard your first tenant.
+          {loading ? (
+            /* Skeleton Table Rows (UX §4) */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem 0' }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: '2.5rem',
+                    backgroundColor: 'var(--surface-border)',
+                    borderRadius: '0.375rem',
+                    opacity: 0.6
+                  }}
+                />
+              ))}
+            </div>
+          ) : schools.length === 0 ? (
+            /* Contextual Empty State (UX §3) */
+            <div
+              style={{
+                padding: '3rem 1.5rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem',
+                backgroundColor: 'var(--surface-hover)',
+                borderRadius: '0.75rem',
+                border: '1px dashed var(--surface-border)'
+              }}
+            >
+              <Inbox size={40} style={{ color: 'var(--text-muted)' }} />
+              <div style={{ fontWeight: 600, fontSize: '1rem' }}>No Schools Onboarded Yet</div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '360px' }}>
+                Get started by provisioning your first school branch or tenant organization into the platform.
+              </p>
+              <Link href="/super-admin/schools">
+                <Button variant="primary" icon={Plus} style={{ marginTop: '0.5rem' }}>
+                  Register First School
+                </Button>
+              </Link>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--surface-border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                  <tr
+                    style={{
+                      borderBottom: '2px solid var(--surface-border)',
+                      textAlign: 'left',
+                      color: 'var(--text-secondary)',
+                      position: 'sticky',
+                      top: 0
+                    }}
+                  >
                     <th style={{ padding: '0.75rem 0.5rem' }}>School Name</th>
-                    <th style={{ padding: '0.75rem 0.5rem' }}>City / Location</th>
+                    <th style={{ padding: '0.75rem 0.5rem' }}>Location</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Currency</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Subscription</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {schools.slice(0, 5).map((school) => (
+                  {schools.slice(0, 6).map((school) => (
                     <tr key={school.id} style={{ borderBottom: '1px solid var(--surface-border)' }}>
                       <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div style={{
-                            width: '0.75rem',
-                            height: '0.75rem',
-                            borderRadius: '50%',
-                            backgroundColor: school.theme?.primaryColor || 'var(--primary-color)'
-                          }} />
+                          <div
+                            style={{
+                              width: '0.75rem',
+                              height: '0.75rem',
+                              borderRadius: '50%',
+                              backgroundColor: school.theme?.primaryColor || 'var(--primary-color)'
+                            }}
+                          />
                           <span>{school.name}</span>
                         </div>
                       </td>
@@ -216,34 +277,43 @@ export default function SuperAdminDashboardPage() {
           )}
         </Card>
 
-        {/* Real-time Activity Feed */}
+        {/* Audit Log Activity Feed */}
         <Card style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Activity Logs</h3>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Recent Audit Activity</h3>
             <Activity size={18} style={{ color: 'var(--primary-color)' }} />
           </div>
 
-          {logs.length === 0 ? (
-            <div style={{ padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              No audit logs recorded yet.
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ height: '2rem', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', opacity: 0.5 }} />
+              ))}
+            </div>
+          ) : logs.length === 0 ? (
+            <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              No recent audit events recorded.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              {logs.slice(0, 5).map((log) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {logs.slice(0, 6).map((log) => (
                 <div key={log.id} style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8125rem' }}>
-                  <div style={{
-                    width: '0.5rem',
-                    height: '0.5rem',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--primary-color)',
-                    marginTop: '0.375rem',
-                    flexShrink: 0
-                  }} />
+                  <div
+                    style={{
+                      width: '0.5rem',
+                      height: '0.5rem',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--primary-color)',
+                      marginTop: '0.375rem',
+                      flexShrink: 0
+                    }}
+                  />
                   <div>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.action}</div>
                     <div style={{ color: 'var(--text-secondary)' }}>{log.details}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-                      {log.userName} • {log.createdAtStr ? new Date(log.createdAtStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      {log.userName || 'System Admin'} •{' '}
+                      {log.createdAtStr ? new Date(log.createdAtStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                     </div>
                   </div>
                 </div>

@@ -1,17 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
+import ConfirmationModal from '@/components/common/ConfirmationModal';
 import { useAuth } from '@/hooks/useAuth';
-import { GraduationCap, Users, Shield, DollarSign, Calendar, BookOpen, UserPlus, FileText, FileBadge, BarChart3, UserCog, LogOut } from 'lucide-react';
+import {
+  Users,
+  Shield,
+  DollarSign,
+  Calendar,
+  BookOpen,
+  UserPlus,
+  FileText,
+  FileBadge,
+  BarChart3,
+  UserCog,
+  LogOut,
+  AlertCircle,
+  RefreshCw,
+  Clock,
+  Sparkles,
+  CreditCard,
+  ArrowRight,
+  ExternalLink,
+  Receipt
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getClasses } from '@/firebase/db/academic';
+import { getClasses, getActiveSession } from '@/firebase/db/academic';
 import { getStudentsBySchool } from '@/firebase/db/students';
-import { getPendingFees, getMonthlyCollection } from '@/firebase/db/fees';
+import { getPendingFees, getMonthlyCollection, getInvoices } from '@/firebase/db/fees';
 import { getSchoolById } from '@/firebase/db/schools';
+import { getAllUsers } from '@/firebase/db/users';
+import { getTodayAttendanceRate } from '@/firebase/db/attendance';
 import TeacherDashboard from './TeacherDashboard';
 
 export default function SchoolDashboard() {
@@ -20,173 +43,698 @@ export default function SchoolDashboard() {
 
   const [classesCount, setClassesCount] = useState(0);
   const [studentsCount, setStudentsCount] = useState(0);
+  const [staffCount, setStaffCount] = useState(0);
+  const [attendanceData, setAttendanceData] = useState({ rate: null, presentCount: 0, totalCount: 0, taken: false });
   const [pendingFees, setPendingFees] = useState(0);
   const [monthlyCollection, setMonthlyCollection] = useState(0);
+  const [activeSession, setActiveSession] = useState(null);
+  const [schoolInfo, setSchoolInfo] = useState(null);
   const [currency, setCurrency] = useState('USD');
-  const [loading, setLoading] = useState(true);
 
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
+  const [recentInvoices, setRecentInvoices] = useState([]);
+  const [studentsList, setStudentsList] = useState([]);
+  const [classesMap, setClassesMap] = useState({});
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const getTimeGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
-  useEffect(() => {
-    if (schoolId && role !== 'TEACHER') {
-      Promise.all([
+  const formatDate = (dateVal) => {
+    if (!dateVal) return 'N/A';
+    let d = dateVal;
+    if (dateVal?.toDate) d = dateVal.toDate();
+    else if (dateVal?.seconds) d = new Date(dateVal.seconds * 1000);
+    else if (typeof dateVal === 'string' || typeof dateVal === 'number') d = new Date(dateVal);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!schoolId || role === 'TEACHER') return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [
+        classes,
+        students,
+        users,
+        attendance,
+        pending,
+        collection,
+        currentSession,
+        school,
+        invoicesData
+      ] = await Promise.all([
         getClasses(schoolId),
         getStudentsBySchool(schoolId),
+        getAllUsers(schoolId),
+        getTodayAttendanceRate(schoolId),
         getPendingFees(schoolId),
         getMonthlyCollection(schoolId),
-        getSchoolById(schoolId)
-      ]).then(([classes, students, pending, collection, school]) => {
-        setClassesCount(classes.length);
-        setStudentsCount(students.length);
-        setPendingFees(pending);
-        setMonthlyCollection(collection);
-        setCurrency(school?.config?.currency || 'USD');
-        setLoading(false);
-      });
+        getActiveSession(schoolId),
+        getSchoolById(schoolId),
+        role === 'ACCOUNTANT' ? getInvoices(schoolId) : Promise.resolve([])
+      ]);
+
+      const cMap = {};
+      (classes || []).forEach(c => { cMap[c.id] = c.name; });
+      setClassesMap(cMap);
+
+      setClassesCount(classes?.length || 0);
+      setStudentsCount(students?.length || 0);
+      setStudentsList(students || []);
+      setRecentInvoices((invoicesData || []).slice(0, 5));
+
+      // Calculate active staff count (all non-student users with active status)
+      const staffMembers = (users || []).filter(
+        (u) => u.role !== 'STUDENT' && u.role !== 'PARENT' && (u.status === 'ACTIVE' || !u.status)
+      );
+      setStaffCount(staffMembers.length);
+
+      setAttendanceData(attendance || { rate: null, presentCount: 0, totalCount: 0, taken: false });
+      setPendingFees(pending || 0);
+      setMonthlyCollection(collection || 0);
+      setActiveSession(currentSession);
+      setSchoolInfo(school);
+      setCurrency(school?.config?.currency || 'USD');
+    } catch (err) {
+      console.error('Failed to load dashboard metrics:', err);
+      setError('Unable to load school dashboard metrics. Please check your network connection and try again.');
+    } finally {
+      setLoading(false);
     }
   }, [schoolId, role]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   if (role === 'TEACHER') {
     return <TeacherDashboard />;
   }
 
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      maximumFractionDigits: 0
+    }).format(val || 0);
+  };
+
   const ActionCard = ({ icon: Icon, label, color, onClick }) => (
-    <div onClick={onClick} style={{ cursor: 'pointer', height: '100%' }}>
-      <Card hoverable style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1.5rem', textAlign: 'center', height: '100%', justifyContent: 'center' }}>
-        <div style={{ backgroundColor: `${color}15`, color: color, padding: '1rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={28} />
+    <div
+      onClick={onClick}
+      style={{
+        cursor: 'pointer',
+        height: '100%',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+      }}
+      className="action-card-hover"
+    >
+      <Card
+        hoverable
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.125rem',
+          padding: '1.25rem 1.5rem',
+          height: '100%',
+          minHeight: '4.5rem',
+          backgroundColor: '#ffffff',
+          border: '1px solid rgba(226, 232, 240, 0.75)',
+          boxShadow: '0 6px 20px -4px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02)',
+          borderRadius: '1rem'
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: `${color}15`,
+            color: color,
+            width: '2.75rem',
+            height: '2.75rem',
+            borderRadius: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}
+        >
+          <Icon size={22} />
         </div>
-        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>{label}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              fontSize: '0.9375rem',
+              lineHeight: 1.3,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {label}
+          </div>
+        </div>
       </Card>
     </div>
   );
 
+  const showStudentKpi = ['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role);
+  const showClassesKpi = ['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role);
+  const showCollectionKpi = ['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role);
+  const showPendingKpi = ['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role);
+
+  const studentsMap = {};
+  (studentsList || []).forEach(s => {
+    studentsMap[s.id] = s.personalInfo?.fullName || s.name || s.id;
+  });
+
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']}>
-      <div style={{ padding: '2rem', paddingBottom: '3rem' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '2rem',
-          background: 'linear-gradient(to right, rgba(59, 130, 246, 0.05), transparent)',
-          padding: '1.5rem',
-          borderRadius: '1rem',
-          border: '1px solid var(--surface-border)'
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.025em' }}>School Dashboard</h1>
-              <Badge variant="success" icon={Shield} style={{ textTransform: 'uppercase' }}>{role?.replace('_', ' ') || 'STAFF'}</Badge>
+      <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '2rem', paddingBottom: '4rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+
+        {/* Header Section */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.5rem',
+            backgroundColor: '#ffffff',
+            padding: '1.5rem 1.75rem',
+            borderRadius: '1rem',
+            border: '1px solid rgba(226, 232, 240, 0.95)',
+            borderTop: '3px solid var(--primary-color)',
+            boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03)'
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '280px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
+                {schoolInfo?.name || 'School Dashboard'}
+              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <Badge variant="success" icon={Shield} style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, padding: '0.25rem 0.625rem' }}>
+                  {role?.replace('_', ' ') || 'STAFF'}
+                </Badge>
+                {activeSession && (
+                  <Badge variant="info" icon={Clock} style={{ fontSize: '0.75rem', fontWeight: 500, padding: '0.25rem 0.625rem' }}>
+                    Active Session: {activeSession.name}
+                  </Badge>
+                )}
+              </div>
             </div>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.375rem', fontSize: '0.9375rem' }}>
-              Welcome back, {currentUser?.displayName || currentUser?.name || currentUser?.email || 'User'}
-            </p>
+            <div style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+              <span>{getTimeGreeting()},</span>
+              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {currentUser?.displayName || currentUser?.name || currentUser?.email || 'User'}
+              </strong>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'].includes(role) && (
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', flexShrink: 0 }}>
+            {['SCHOOL_ADMIN'].includes(role) && (
               <Button variant="primary" icon={BookOpen} onClick={() => router.push('/school/classes')}>
                 Manage Classes
               </Button>
             )}
             {['SCHOOL_ADMIN'].includes(role) && (
-              <Button variant="outline" icon={Calendar} onClick={() => router.push('/school/sessions')}>
-                Sessions
+              <Button variant="outline" icon={Sparkles} onClick={() => router.push('/school/sessions')}>
+                Academic Sessions
               </Button>
             )}
-            <Button variant="outline" icon={LogOut} onClick={handleLogout}>
+            {role === 'ACCOUNTANT' && (
+              <Button variant="primary" icon={CreditCard} onClick={() => router.push('/school/fees?tab=collection')}>
+                Fee Collection
+              </Button>
+            )}
+            {role === 'RECEPTIONIST' && (
+              <Button variant="primary" icon={UserPlus} onClick={() => router.push('/school/students/admission')}>
+                Admit Student
+              </Button>
+            )}
+            <Button variant="outline" icon={LogOut} onClick={() => setShowLogoutModal(true)}>
               Sign Out
             </Button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '3rem' }}>
-          <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={28} />
-            </div>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Total Students</p>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{loading ? '—' : studentsCount}</h3>
-            </div>
-          </Card>
-
-          <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', padding: '1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GraduationCap size={28} />
-            </div>
-            <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Active Classes</p>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{loading ? '—' : classesCount}</h3>
+        {/* Error Callout */}
+        {error && (
+          <Card style={{ padding: '1.25rem', backgroundColor: 'var(--status-danger-bg)', borderColor: 'var(--status-danger)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--status-danger)' }}>
+                <AlertCircle size={22} />
+                <span style={{ fontWeight: 500, fontSize: '0.9375rem' }}>{error}</span>
+              </div>
+              <Button variant="outline" icon={RefreshCw} onClick={fetchDashboardData}>
+                Retry Data Load
+              </Button>
             </div>
           </Card>
+        )}
 
-          {['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role) && (
-            <>
-              <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <DollarSign size={28} />
-                </div>
-                <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Collection (Month)</p>
-                  <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#10b981', lineHeight: 1.2 }}>
-                    {loading ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(monthlyCollection)}
-                  </h3>
-                </div>
-              </Card>
+        {/* Concise KPI Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
 
-              <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <DollarSign size={28} />
-                </div>
-                <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Pending Fees</p>
-                  <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#ef4444', lineHeight: 1.2 }}>
-                    {loading ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(pendingFees)}
-                  </h3>
-                </div>
-              </Card>
-            </>
+          {/* KPI 1: Total Students */}
+          {showStudentKpi && (
+            <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.875rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02)' }}>
+              <div style={{ width: '3rem', height: '3rem', borderRadius: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Users size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Total Students</div>
+                {loading ? (
+                  <div style={{ height: '1.5rem', width: '60px', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', marginTop: '0.25rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
+                ) : (
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.125rem', lineHeight: 1.2 }}>{studentsCount}</div>
+                )}
+              </div>
+            </Card>
           )}
+
+          {/* KPI 2: Active Classes */}
+          {showClassesKpi && (
+            <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.875rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02)' }}>
+              <div style={{ width: '3rem', height: '3rem', borderRadius: '0.75rem', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <BookOpen size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Active Classes</div>
+                {loading ? (
+                  <div style={{ height: '1.5rem', width: '60px', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', marginTop: '0.25rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
+                ) : (
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.125rem', lineHeight: 1.2 }}>{classesCount}</div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* KPI 3: Collection (Month) */}
+          {showCollectionKpi && (
+            <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.875rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02)' }}>
+              <div style={{ width: '3rem', height: '3rem', borderRadius: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <DollarSign size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Collection (Month)</div>
+                {loading ? (
+                  <div style={{ height: '1.5rem', width: '80px', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', marginTop: '0.25rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
+                ) : (
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', marginTop: '0.125rem', lineHeight: 1.2 }}>{formatCurrency(monthlyCollection)}</div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* KPI 4: Pending Fees */}
+          {showPendingKpi && (
+            <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.875rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02)' }}>
+              <div style={{ width: '3rem', height: '3rem', borderRadius: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CreditCard size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Pending Fees</div>
+                {loading ? (
+                  <div style={{ height: '1.5rem', width: '80px', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', marginTop: '0.25rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
+                ) : (
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', marginTop: '0.125rem', lineHeight: 1.2 }}>{formatCurrency(pendingFees)}</div>
+                )}
+              </div>
+            </Card>
+          )}
+
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Quick Actions</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.25rem' }}>
+        {/* Quick Actions Section */}
+        {role === 'SCHOOL_ADMIN' ? (
+          /* Multi-Category Admin View (Unchanged 3 Categories with Labels) */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.625rem' }}>
+                Academic Administration
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem 1.25rem' }}>
+                <ActionCard
+                  icon={BookOpen}
+                  label="Manage Classes"
+                  color="#3b82f6"
+                  onClick={() => router.push('/school/classes')}
+                />
+                <ActionCard
+                  icon={BookOpen}
+                  label="Subject Catalog"
+                  color="#8b5cf6"
+                  onClick={() => router.push('/school/academic/subjects')}
+                />
+                <ActionCard
+                  icon={Calendar}
+                  label="Master Timetable"
+                  color="#0ea5e9"
+                  onClick={() => router.push('/school/academic/timetable')}
+                />
+                <ActionCard
+                  icon={Sparkles}
+                  label="Academic Sessions"
+                  color="#6366f1"
+                  onClick={() => router.push('/school/sessions')}
+                />
+              </div>
+            </div>
 
-            {/* Admin Only Actions */}
-            {['SCHOOL_ADMIN'].includes(role) && (
-              <>
-                <ActionCard icon={BookOpen} label="Manage Classes" color="#3b82f6" onClick={() => router.push('/school/classes')} />
-                <ActionCard icon={BookOpen} label="Manage Subjects" color="#8b5cf6" onClick={() => router.push('/school/academic/subjects')} />
-                <ActionCard icon={Calendar} label="Timetable" color="#0ea5e9" onClick={() => router.push('/school/academic/timetable')} />
-                <ActionCard icon={UserCog} label="Manage Staff" color="#6366f1" onClick={() => router.push('/school/staff')} />
-              </>
-            )}
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.625rem' }}>
+                Students & Faculty
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem 1.25rem' }}>
+                <ActionCard
+                  icon={UserPlus}
+                  label="Admit Student"
+                  color="#10b981"
+                  onClick={() => router.push('/school/students/admission')}
+                />
+                <ActionCard
+                  icon={Users}
+                  label="Student Directory"
+                  color="#14b8a6"
+                  onClick={() => router.push('/school/students')}
+                />
+                <ActionCard
+                  icon={UserCog}
+                  label="Manage Staff"
+                  color="#6366f1"
+                  onClick={() => router.push('/school/staff')}
+                />
+                <ActionCard
+                  icon={FileBadge}
+                  label="Certificates"
+                  color="#f59e0b"
+                  onClick={() => router.push('/school/students/certificates')}
+                />
+              </div>
+            </div>
 
-            {/* Admission & Student Management */}
-            {['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role) && (
-              <>
-                <ActionCard icon={UserPlus} label="Admit Student" color="#10b981" onClick={() => router.push('/school/students/admission')} />
-                <ActionCard icon={FileBadge} label="Certificates" color="#f59e0b" onClick={() => router.push('/school/students/certificates')} />
-              </>
-            )}
-
-            {/* Accounting Actions */}
-            {['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role) && (
-              <>
-                <ActionCard icon={FileText} label="Collect Fee" color="#ef4444" onClick={() => router.push('/school/fees?tab=collection')} />
-                <ActionCard icon={FileText} label="Manage Expenses" color="#f43f5e" onClick={() => router.push('/school/accounting/expenses')} />
-                <ActionCard icon={BarChart3} label="Reports Hub" color="#14b8a6" onClick={() => router.push('/school/reports')} />
-                <ActionCard icon={FileText} label="Financial Summary" color="#84cc16" onClick={() => router.push('/school/accounting/summary')} />
-              </>
-            )}
-
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.625rem' }}>
+                Financial Operations
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem 1.25rem' }}>
+                <ActionCard
+                  icon={CreditCard}
+                  label="Fee Collection"
+                  color="#ef4444"
+                  onClick={() => router.push('/school/fees?tab=collection')}
+                />
+                <ActionCard
+                  icon={FileText}
+                  label="Manage Expenses"
+                  color="#f43f5e"
+                  onClick={() => router.push('/school/accounting/expenses')}
+                />
+                <ActionCard
+                  icon={BarChart3}
+                  label="Reports Hub"
+                  color="#10b981"
+                  onClick={() => router.push('/school/reports')}
+                />
+                <ActionCard
+                  icon={FileText}
+                  label="Financial Summary"
+                  color="#84cc16"
+                  onClick={() => router.push('/school/accounting/summary')}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : role === 'ACCOUNTANT' ? (
+          /* Framed Single-Category View for Accountant (No uppercase category label) */
+          <Card style={{ padding: '1.5rem', borderRadius: '1rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={18} style={{ color: 'var(--primary-color)' }} />
+                Quick Actions
+              </h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+              <ActionCard
+                icon={CreditCard}
+                label="Fee Collection"
+                color="#ef4444"
+                onClick={() => router.push('/school/fees?tab=collection')}
+              />
+              <ActionCard
+                icon={FileText}
+                label="Manage Expenses"
+                color="#f43f5e"
+                onClick={() => router.push('/school/accounting/expenses')}
+              />
+              <ActionCard
+                icon={BarChart3}
+                label="Reports Hub"
+                color="#10b981"
+                onClick={() => router.push('/school/reports')}
+              />
+              <ActionCard
+                icon={FileText}
+                label="Financial Summary"
+                color="#84cc16"
+                onClick={() => router.push('/school/accounting/summary')}
+              />
+            </div>
+          </Card>
+        ) : (
+          /* Framed Single-Category View for Receptionist (No uppercase category label) */
+          <Card style={{ padding: '1.5rem', borderRadius: '1rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={18} style={{ color: 'var(--primary-color)' }} />
+                Quick Actions
+              </h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+              <ActionCard
+                icon={UserPlus}
+                label="Admit Student"
+                color="#10b981"
+                onClick={() => router.push('/school/students/admission')}
+              />
+              <ActionCard
+                icon={Users}
+                label="Student Directory"
+                color="#14b8a6"
+                onClick={() => router.push('/school/students')}
+              />
+              <ActionCard
+                icon={FileBadge}
+                label="Certificates"
+                color="#f59e0b"
+                onClick={() => router.push('/school/students/certificates')}
+              />
+            </div>
+          </Card>
+        )}
+
+        {/* Role-Relevant Supporting Content below Quick Actions */}
+
+        {/* ACCOUNTANT SUPPORTING WIDGET */}
+        {role === 'ACCOUNTANT' && (
+          <Card style={{ padding: '1.5rem', borderRadius: '1rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Recent Invoices & Transactions
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                  Latest fee records and payment status
+                </p>
+              </div>
+              <Button variant="outline" icon={ArrowRight} iconPosition="right" onClick={() => router.push('/school/fees')}>
+                View All Invoices
+              </Button>
+            </div>
+
+            {loading ? (
+              <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading recent transactions...</div>
+            ) : recentInvoices.length === 0 ? (
+              <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '0.75rem', border: '1px dashed rgba(226, 232, 240, 0.95)' }}>
+                <Receipt size={36} style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }} />
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>No recent invoices recorded</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem', marginBottom: '1rem' }}>Generate invoices or collect payments to view recent activity here.</div>
+                <Button variant="primary" icon={CreditCard} onClick={() => router.push('/school/fees?tab=collection')}>
+                  Fee Collection
+                </Button>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(226, 232, 240, 0.95)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Invoice #</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Student / Type</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Month</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Amount</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentInvoices.map((inv) => {
+                      const studentName = studentsMap[inv.studentId] || 'Student Record';
+                      const statusVariant = inv.status === 'PAID' ? 'success' : inv.status === 'PARTIAL' ? 'warning' : 'danger';
+                      return (
+                        <tr key={inv.id || inv.invoiceId} style={{ borderBottom: '1px solid rgba(241, 245, 249, 0.95)' }}>
+                          <td style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {inv.invoiceNumber || inv.id}
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{studentName}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{inv.feeType || 'Tuition'}</div>
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem', color: 'var(--text-secondary)' }}>
+                            {inv.feeMonth || 'Current'}
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {formatCurrency(inv.payableAmount || inv.amount)}
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem' }}>
+                            <Badge variant={statusVariant} style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+                              {inv.status || 'UNPAID'}
+                            </Badge>
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                            <Button variant="ghost" size="sm" icon={ExternalLink} onClick={() => router.push('/school/fees')}>
+                              Manage
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* RECEPTIONIST SUPPORTING WIDGET */}
+        {role === 'RECEPTIONIST' && (
+          <Card style={{ padding: '1.5rem', borderRadius: '1rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Recent Admissions & Student Activity
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                  Newly registered students and active directory entries
+                </p>
+              </div>
+              <Button variant="outline" icon={ArrowRight} iconPosition="right" onClick={() => router.push('/school/students')}>
+                Open Student Directory
+              </Button>
+            </div>
+
+            {loading ? (
+              <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading recent admissions...</div>
+            ) : studentsList.length === 0 ? (
+              <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '0.75rem', border: '1px dashed rgba(226, 232, 240, 0.95)' }}>
+                <Users size={36} style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }} />
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>No student admissions found</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem', marginBottom: '1rem' }}>Admit new students to manage directory records here.</div>
+                <Button variant="primary" icon={UserPlus} onClick={() => router.push('/school/students/admission')}>
+                  Admit Student
+                </Button>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(226, 232, 240, 0.95)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Admission #</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Student Name</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Class</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Admission Date</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentsList.slice(0, 5).map((st) => {
+                      const fullName = st.personalInfo?.fullName || st.name || 'Unnamed Student';
+                      const className = classesMap[st.classId] || st.classId || 'Unassigned';
+                      const statusName = st.academicDetails?.status || st.status || 'ACTIVE';
+                      return (
+                        <tr key={st.id || st.studentId} style={{ borderBottom: '1px solid rgba(241, 245, 249, 0.95)' }}>
+                          <td style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {st.admissionNumber || st.id}
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fullName}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{st.parentInfo?.fatherName ? `Father: ${st.parentInfo.fatherName}` : 'Student Record'}</div>
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem', color: 'var(--text-secondary)' }}>
+                            {className}
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem', color: 'var(--text-secondary)' }}>
+                            {formatDate(st.admissionDate || st.createdAt)}
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem' }}>
+                            <Badge variant="success" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+                              {statusName}
+                            </Badge>
+                          </td>
+                          <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                            <Button variant="ghost" size="sm" icon={ExternalLink} onClick={() => router.push(`/school/students/${st.id}`)}>
+                              Profile
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Confirmation Modal for Sign Out */}
+        <ConfirmationModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleConfirmLogout}
+          title="Confirm Sign Out"
+          description="Are you sure you want to sign out of the School Management Portal? Any unsaved changes may be lost."
+          confirmText="Sign Out"
+          cancelText="Cancel"
+          variant="warning"
+          isLoading={loggingOut}
+        />
+
       </div>
     </ProtectedRoute>
   );

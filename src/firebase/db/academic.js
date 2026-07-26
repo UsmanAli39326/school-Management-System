@@ -60,6 +60,18 @@ export async function getSessions(schoolId) {
   }
 }
 
+export async function getActiveSession(schoolId) {
+  try {
+    const sessions = await getSessions(schoolId);
+    const active = sessions.find((s) => s.isCurrent === true || s.isCurrent === 'true');
+    return active || sessions[0] || null;
+  } catch (error) {
+    console.error('Error fetching active session:', error);
+    return null;
+  }
+}
+
+
 export async function updateSession(sessionId, updateData) {
   const docRef = doc(db, SESSIONS_COLLECTION, sessionId);
   await updateDoc(docRef, updateData);
@@ -144,6 +156,8 @@ export async function createSection(schoolId, classId, sectionData) {
     name: sectionData.name || '',
     roomNumber: sectionData.roomNumber || '',
     capacity: Number(sectionData.capacity) || 30,
+    classTeacherId: sectionData.classTeacherId || null,
+    classTeacherName: sectionData.classTeacherName || null,
     createdAt: serverTimestamp(),
   };
 
@@ -198,6 +212,10 @@ export async function createSubject(schoolId, classId, subjectData) {
     schoolId,
     classId,
     name: subjectData.name || '',
+    code: subjectData.code || '',
+    type: subjectData.type || 'Core', // Core, Elective, Optional
+    department: subjectData.department || 'General',
+    creditWeight: Number(subjectData.creditWeight) || 1,
     teacherId: subjectData.teacherId || null,
     teacherName: subjectData.teacherName || null,
     createdAt: serverTimestamp(),

@@ -6,7 +6,7 @@ const INVITATIONS_COL = 'staff_invitations';
 /**
  * Create a new staff invitation
  */
-export async function createInvitation(schoolId, email, role, adminName) {
+export async function createInvitation(schoolId, email, role, adminName, department = 'General') {
   const cleanEmail = email.trim().toLowerCase();
   const inviteId = cleanEmail.replace(/[^a-z0-9]/g, '_');
   const docRef = doc(db, INVITATIONS_COL, inviteId);
@@ -15,6 +15,7 @@ export async function createInvitation(schoolId, email, role, adminName) {
     inviteId,
     email: cleanEmail,
     role,
+    department,
     schoolId,
     invitedBy: adminName,
     status: 'PENDING',

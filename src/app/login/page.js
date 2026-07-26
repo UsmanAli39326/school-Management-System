@@ -7,12 +7,14 @@ import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
-import { Mail, Lock, GraduationCap, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, GraduationCap, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeRolePreset, setActiveRolePreset] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -45,7 +47,7 @@ export default function LoginPage() {
 
     try {
       await sendResetEmail(email);
-      setSuccessMessage('Password reset link sent! Check your inbox.');
+      setSuccessMessage('Password reset instructions sent to your email.');
     } catch (err) {
       console.error('Reset error:', err);
       setError(err.message || 'Failed to send reset email.');
@@ -57,8 +59,9 @@ export default function LoginPage() {
   const handleDemoPreset = (presetRole, demoEmail, demoPass) => {
     setEmail(demoEmail);
     setPassword(demoPass);
+    setActiveRolePreset(presetRole);
     setError('');
-    setSuccessMessage(`Loaded ${presetRole} credentials. Click Sign In to test.`);
+    setSuccessMessage(`Loaded ${presetRole} credentials. Click "Sign In to Portal" to test.`);
   };
 
   return (
@@ -140,17 +143,26 @@ export default function LoginPage() {
           {/* Auth Card */}
           <Card accentRule style={{ padding: '2rem' }}>
             {/* Navigation Tabs */}
-            <div style={{
-              display: 'flex',
-              backgroundColor: 'var(--surface-hover)',
-              padding: '0.25rem',
-              borderRadius: '0.5rem',
-              marginBottom: '1.5rem'
-            }}>
+            <div
+              role="tablist"
+              aria-label="Authentication Options"
+              style={{
+                display: 'flex',
+                backgroundColor: 'var(--surface-hover)',
+                padding: '0.25rem',
+                borderRadius: '0.5rem',
+                marginBottom: '1.5rem'
+              }}
+            >
               <button
+                role="tab"
+                aria-selected={activeTab === 'login'}
+                aria-controls="login-panel"
+                id="login-tab"
                 onClick={() => { setActiveTab('login'); setError(''); setSuccessMessage(''); }}
                 style={{
                   flex: 1,
+                  minHeight: '44px',
                   padding: '0.5rem 1rem',
                   border: 'none',
                   borderRadius: '0.375rem',
@@ -166,9 +178,14 @@ export default function LoginPage() {
                 Sign In
               </button>
               <button
+                role="tab"
+                aria-selected={activeTab === 'reset'}
+                aria-controls="reset-panel"
+                id="reset-tab"
                 onClick={() => { setActiveTab('reset'); setError(''); setSuccessMessage(''); }}
                 style={{
                   flex: 1,
+                  minHeight: '44px',
                   padding: '0.5rem 1rem',
                   border: 'none',
                   borderRadius: '0.375rem',
@@ -222,7 +239,7 @@ export default function LoginPage() {
 
             {/* Sign In Form */}
             {activeTab === 'login' ? (
-              <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <form id="login-panel" role="tabpanel" aria-labelledby="login-tab" onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <Input
                   label="Email Address"
                   type="email"
@@ -234,26 +251,45 @@ export default function LoginPage() {
                 />
                 <Input
                   label="Password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   icon={Lock}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  rightElement={
+                    <button
+                      type="button"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0.25rem'
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  }
                 />
                 <Button
                   type="submit"
                   variant="primary"
                   isLoading={isLoading}
                   icon={ArrowRight}
-                  style={{ marginTop: '0.5rem', width: '100%' }}
+                  style={{ marginTop: '0.5rem', width: '100%', minHeight: '44px' }}
                 >
                   Sign In to Portal
                 </Button>
               </form>
             ) : (
               /* Forgot Password Form */
-              <form onSubmit={handleResetSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <form id="reset-panel" role="tabpanel" aria-labelledby="reset-tab" onSubmit={handleResetSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                   Enter your email address and we'll send you instructions to reset your password.
                 </p>
@@ -270,7 +306,7 @@ export default function LoginPage() {
                   type="submit"
                   variant="primary"
                   isLoading={isLoading}
-                  style={{ marginTop: '0.5rem', width: '100%' }}
+                  style={{ marginTop: '0.5rem', width: '100%', minHeight: '44px' }}
                 >
                   Send Reset Link
                 </Button>
@@ -285,75 +321,41 @@ export default function LoginPage() {
                 </span>
                 <Badge variant="info" icon={ShieldCheck}>Phase 1 Setup</Badge>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleDemoPreset('School Admin', 'admin@apexschool.com', 'school123')}
-                  style={{
-                    padding: '0.5rem',
-                    borderRadius: '0.375rem',
-                    border: '1px solid var(--surface-border)',
-                    backgroundColor: 'var(--surface-bg)',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    textAlign: 'left'
-                  }}
-                >
-                  🏫 School Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoPreset('Accountant', 'accountant@apexschool.com', 'accountant123')}
-                  style={{
-                    padding: '0.5rem',
-                    borderRadius: '0.375rem',
-                    border: '1px solid var(--surface-border)',
-                    backgroundColor: 'var(--surface-bg)',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    textAlign: 'left'
-                  }}
-                >
-                  💰 Accountant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoPreset('Receptionist', 'receptionist@apexschool.com', 'reception123')}
-                  style={{
-                    padding: '0.5rem',
-                    borderRadius: '0.375rem',
-                    border: '1px solid var(--surface-border)',
-                    backgroundColor: 'var(--surface-bg)',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    textAlign: 'left'
-                  }}
-                >
-                  📋 Receptionist
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoPreset('Teacher', 'teacher@apexschool.com', 'teacher123')}
-                  style={{
-                    padding: '0.5rem',
-                    borderRadius: '0.375rem',
-                    border: '1px solid var(--surface-border)',
-                    backgroundColor: 'var(--surface-bg)',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    textAlign: 'left'
-                  }}
-                >
-                  👨‍🏫 Teacher
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+                {[
+                  { title: 'School Admin', email: 'admin@apexschool.com', pass: 'school123', icon: '🏫' },
+                  { title: 'Accountant', email: 'accountant@apexschool.com', pass: 'accountant123', icon: '💰' },
+                  { title: 'Receptionist', email: 'receptionist@apexschool.com', pass: 'reception123', icon: '📋' },
+                  { title: 'Teacher', email: 'teacher@apexschool.com', pass: 'teacher123', icon: '👨‍🏫' },
+                ].map((demo) => {
+                  const isActive = activeRolePreset === demo.title;
+                  return (
+                    <button
+                      key={demo.title}
+                      type="button"
+                      onClick={() => handleDemoPreset(demo.title, demo.email, demo.pass)}
+                      aria-label={`Fill ${demo.title} credentials`}
+                      style={{
+                        minHeight: '44px',
+                        padding: '0.625rem 0.75rem',
+                        borderRadius: '0.5rem',
+                        border: isActive ? '1px solid var(--primary-color)' : '1px solid var(--surface-border)',
+                        backgroundColor: isActive ? 'var(--primary-light)' : 'var(--surface-bg)',
+                        fontSize: '0.8125rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        color: isActive ? 'var(--primary-color)' : 'var(--text-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'all var(--transition-fast)'
+                      }}
+                    >
+                      <span>{demo.icon} {demo.title}</span>
+                      {isActive && <Check size={16} color="var(--primary-color)" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

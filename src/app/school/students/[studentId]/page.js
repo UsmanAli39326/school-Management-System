@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
@@ -19,7 +19,8 @@ export default function StudentProfilePage({ params }) {
   const { schoolId, role } = useAuth();
   const { showAlert } = useAlert();
   const router = useRouter();
-  const studentId = params.studentId;
+  const resolvedParams = use(params);
+  const studentId = resolvedParams.studentId;
   
   const [student, setStudent] = useState(null);
   const [className, setClassName] = useState('Loading...');

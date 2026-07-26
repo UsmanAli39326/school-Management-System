@@ -28,6 +28,7 @@ export async function createSchedule(schoolId, scheduleData) {
     sectionId: scheduleData.sectionId || null,
     subjectId: scheduleData.subjectId,
     teacherId: scheduleData.teacherId,
+    roomNumber: scheduleData.roomNumber || '',
     dayOfWeek: scheduleData.dayOfWeek, // e.g. "Monday"
     startTime: scheduleData.startTime, // e.g. "09:00"
     endTime: scheduleData.endTime,     // e.g. "09:45"
@@ -116,7 +117,36 @@ export async function checkClassSectionConflict(schoolId, classId, sectionId, da
   return null;
 }
 
+/**
+ * Check if a room is already occupied at the given day and time slot
+ */
+export async function checkRoomConflict(schoolId, roomNumber, dayOfWeek, startTime, endTime, excludeScheduleId = null) {
+  if (!roomNumber || !roomNumber.trim()) return null;
+  try {
+    const q = query(
+      collection(db, SCHEDULES_COLLECTION),
+      where('schoolId', '==', schoolId),
+      where('roomNumber', '==', roomNumber.trim())
+    );
+    const snapshot = await getDocs(q);
+    for (const docSnap of snapshot.docs) {
+      const sch = { id: docSnap.id, ...docSnap.data() };
+      if (excludeScheduleId && sch.id === excludeScheduleId) continue;
+      if (sch.dayOfWeek === dayOfWeek) {
+        if (sch.startTime < endTime && sch.endTime > startTime) {
+          return sch;
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error checking room conflict:', error);
+    return null;
+  }
+}
+
 export async function deleteSchedule(scheduleId) {
   const docRef = doc(db, SCHEDULES_COLLECTION, scheduleId);
   await deleteDoc(docRef);
 }
+

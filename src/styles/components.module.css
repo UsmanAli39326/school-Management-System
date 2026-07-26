@@ -25,7 +25,7 @@
 
 .btnPrimary {
   background: var(--primary-color);
-  color: #ffffff;
+  color: var(--primary-text, #ffffff);
 }
 
 .btnPrimary:hover:not(:disabled) {
@@ -46,7 +46,7 @@
 
 .btnSecondary:hover:not(:disabled) {
   background: var(--primary-color);
-  color: #ffffff;
+  color: var(--primary-text, #ffffff);
 }
 
 .btnOutline {
@@ -114,6 +114,24 @@
 
 .inputWithIcon {
   padding-left: 2.625rem;
+}
+
+.inputWithRightElement {
+  padding-right: 2.625rem;
+}
+
+.inputRightElement {
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.requiredAsterisk {
+  color: var(--status-danger);
+  margin-left: 0.25rem;
 }
 
 .input:focus {

@@ -339,3 +339,32 @@ export async function getMonthlyCollection(schoolId) {
     return 0;
   }
 }
+
+export async function getFeeCollectionReport(schoolId, startDate = null, endDate = null) {
+  try {
+    const q = query(collection(db, PAYMENTS_COL), where('schoolId', '==', schoolId));
+    const snapshot = await getDocs(q);
+    const payments = [];
+
+    const startMs = startDate ? new Date(startDate).getTime() : 0;
+    const endMs = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : Infinity;
+
+    snapshot.forEach((d) => {
+      const data = d.data();
+      const timeMs = data.paymentDate?.toMillis?.() || 0;
+      if (timeMs >= startMs && timeMs <= endMs) {
+        payments.push({ id: d.id, ...data });
+      }
+    });
+
+    return payments.sort((a, b) => {
+      const tA = a.paymentDate?.toMillis?.() || 0;
+      const tB = b.paymentDate?.toMillis?.() || 0;
+      return tB - tA;
+    });
+  } catch (error) {
+    console.error('Error fetching fee collection report:', error);
+    return [];
+  }
+}
+

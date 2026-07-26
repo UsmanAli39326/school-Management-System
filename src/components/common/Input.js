@@ -8,9 +8,11 @@ export default function Input({
   label,
   error,
   icon: Icon,
+  rightElement,
   className,
   id,
   type = 'text',
+  required,
   ...props
 }) {
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
@@ -21,6 +23,7 @@ export default function Input({
       {label && (
         <label htmlFor={inputId} className={styles.label}>
           {label}
+          {required && <span className={styles.requiredAsterisk}>*</span>}
         </label>
       )}
       <div className={styles.inputWrapper}>
@@ -32,9 +35,11 @@ export default function Input({
         <input
           id={inputId}
           type={type}
+          required={required}
           className={clsx(
             styles.input,
             Icon && styles.inputWithIcon,
+            rightElement && styles.inputWithRightElement,
             error && styles.inputError,
             className
           )}
@@ -42,6 +47,11 @@ export default function Input({
           aria-describedby={error ? errorId : undefined}
           {...props}
         />
+        {rightElement && (
+          <span className={styles.inputRightElement}>
+            {rightElement}
+          </span>
+        )}
       </div>
       {error && (
         <span id={errorId} className={styles.errorMessage} role="alert">
