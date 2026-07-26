@@ -60,7 +60,7 @@ export default function TeacherSchedulePage() {
 
   return (
     <ProtectedRoute allowedRoles={['TEACHER']}>
-      <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Page Header */}
         <div>
@@ -69,7 +69,7 @@ export default function TeacherSchedulePage() {
         </div>
 
         {/* Day Filter Pills */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="flex flex-nowrap sm:flex-wrap overflow-x-auto scrollbar-none gap-2 items-center">
           <button
             onClick={() => setSelectedDay('ALL')}
             style={{
@@ -114,7 +114,7 @@ export default function TeacherSchedulePage() {
 
         {/* Schedule Cards Grid */}
         {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div key={i} style={{ height: '160px', backgroundColor: 'var(--surface-border)', borderRadius: '0.75rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
             ))}
@@ -128,7 +128,7 @@ export default function TeacherSchedulePage() {
             </p>
           </Card>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeDaysToRender.map((day) => {
               const daySchedules = getSchedulesForDay(day);
               if (daySchedules.length === 0 && selectedDay !== 'ALL') {

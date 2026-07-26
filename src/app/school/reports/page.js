@@ -11,7 +11,7 @@ export default function ReportsHubPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT']}>
-      <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Page Header */}
         <div>
@@ -22,7 +22,7 @@ export default function ReportsHubPage() {
         </div>
 
         {/* Reports Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
 
           {/* Report 1: Defaulters / Due Fees */}
           <Card hoverable style={{ borderTop: '5px solid var(--status-danger)', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>

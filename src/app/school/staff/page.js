@@ -295,7 +295,7 @@ export default function StaffManagementPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN']}>
-      <div style={{ padding: '2rem', maxWidth: '1280px', margin: '0 auto' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12">
         
         {/* Breadcrumb Header (UX Model Rule 1, 17) */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -317,15 +317,7 @@ export default function StaffManagementPage() {
             <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>Staff & Human Resources</span>
           </nav>
 
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '1rem',
-            }}
-          >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1
                 style={{
@@ -356,14 +348,7 @@ export default function StaffManagementPage() {
         </div>
 
         {/* Metrics Grid Cards (UX Model Rule 1) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '1.25rem',
-            marginBottom: '2rem',
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card style={{ borderLeft: '4px solid var(--primary-color)', padding: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>

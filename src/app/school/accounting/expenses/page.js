@@ -88,7 +88,7 @@ export default function ExpensesPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -102,24 +102,26 @@ export default function ExpensesPage() {
         </div>
 
         {/* Search & Category Filters (UX §10) */}
-        <Card style={{ padding: '1.25rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: '220px' }}>
-            <Input
-              placeholder="Search expenses by vendor name, ref, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              icon={Search}
-            />
-          </div>
-          <div style={{ width: '220px' }}>
-            <Select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c === 'ALL' ? 'All Categories' : c}</option>
-              ))}
-            </Select>
+        <Card style={{ padding: '1.25rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            <div>
+              <Input
+                placeholder="Search expenses by vendor name, ref, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                icon={Search}
+              />
+            </div>
+            <div>
+              <Select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c === 'ALL' ? 'All Categories' : c}</option>
+                ))}
+              </Select>
+            </div>
           </div>
         </Card>
 
@@ -141,8 +143,8 @@ export default function ExpensesPage() {
           </Card>
         ) : (
           <Card style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px]" style={{ borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '2px solid var(--surface-border)', color: 'var(--text-secondary)' }}>
                     <th style={{ padding: '1rem' }}>Date</th>

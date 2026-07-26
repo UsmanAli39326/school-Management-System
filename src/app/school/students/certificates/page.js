@@ -76,18 +76,18 @@ export default function CertificatesPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'RECEPTIONIST']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
         
-        <div style={{ marginBottom: '2rem' }}>
+        <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <FileBadge color="var(--primary-color)" /> Certificates
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Generate official printable certificates for students.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           
-          <Card>
+          <Card className="md:col-span-4">
             <div style={{ marginBottom: '1rem', position: 'relative' }}>
               <Search size={18} style={{ position: 'absolute', left: '1rem', top: '1.2rem', color: 'var(--text-secondary)' }} />
               <input 
@@ -120,7 +120,7 @@ export default function CertificatesPage() {
             </div>
           </Card>
 
-          <Card>
+          <Card className="md:col-span-8">
             {selectedStudent ? (
               <div>
                 <h2>{selectedStudent.personalInfo?.fullName}</h2>

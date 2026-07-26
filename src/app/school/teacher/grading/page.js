@@ -214,7 +214,7 @@ export default function TeacherGradingPage() {
 
   return (
     <ProtectedRoute allowedRoles={['TEACHER']}>
-      <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -252,7 +252,7 @@ export default function TeacherGradingPage() {
           </Card>
         ) : (
           <Card style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 label="Select Assigned Subject *"
                 value={selectedSubjectId}
@@ -285,8 +285,8 @@ export default function TeacherGradingPage() {
               <span style={{ fontWeight: 700, fontSize: '1.125rem' }}>Grade Entry Sheet</span>
               <span style={{ fontSize: '0.84375rem', color: 'var(--text-secondary)' }}>{students.length} Enrolled Students</span>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px]" style={{ borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '2px solid var(--surface-border)', textAlign: 'left' }}>
                     <th style={{ padding: '1rem', width: '25%' }}>Student Name</th>

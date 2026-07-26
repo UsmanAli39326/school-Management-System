@@ -120,7 +120,7 @@ export default function TeacherClassesPage() {
 
   return (
     <ProtectedRoute allowedRoles={['TEACHER']}>
-      <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {!selectedSubject ? (
           <>
@@ -131,7 +131,7 @@ export default function TeacherClassesPage() {
             </div>
 
             {loading ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
                   <div key={i} style={{ height: '120px', backgroundColor: 'var(--surface-border)', borderRadius: '0.75rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
                 ))}
@@ -145,7 +145,7 @@ export default function TeacherClassesPage() {
                 </p>
               </Card>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {subjects.map((sub) => (
                   <Card
                     key={sub.id}

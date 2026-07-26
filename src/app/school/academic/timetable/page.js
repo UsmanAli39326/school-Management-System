@@ -221,7 +221,7 @@ export default function TimetablePage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -237,10 +237,10 @@ export default function TimetablePage() {
         {loading && classes.length === 0 ? (
           <div style={{ height: '300px', backgroundColor: 'var(--surface-border)', borderRadius: '0.75rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
         ) : (
-          <div style={{ display: 'flex', gap: '1.75rem', flexWrap: 'wrap' }}>
+          <div className="flex flex-col md:flex-row gap-6">
             
             {/* Left Sidebar: Class Selector */}
-            <div style={{ width: '240px', flexShrink: 0 }}>
+            <div className="w-full md:w-60 shrink-0">
               <h3 style={{ marginBottom: '0.75rem', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Select Class
               </h3>
@@ -338,7 +338,7 @@ export default function TimetablePage() {
                             {daySchedules.length === 0 ? (
                               <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No periods scheduled for {day}</div>
                             ) : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {daySchedules.map(sch => {
                                   const subject = subjects.find(s => s.id === sch.subjectId);
                                   const section = sections.find(sec => sec.id === sch.sectionId);

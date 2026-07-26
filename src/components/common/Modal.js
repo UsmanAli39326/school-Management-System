@@ -54,7 +54,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
             <X size={20} aria-hidden="true" />
           </button>
         </div>
-        <div style={{ padding: '1.5rem' }}>
+        <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
           {children}
         </div>
       </div>

@@ -84,7 +84,7 @@ export default function ExpenseAuditReportPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT']}>
-      <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Back Button */}
         <div>
@@ -136,8 +136,8 @@ export default function ExpenseAuditReportPage() {
           </Card>
         ) : (
           <Card style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px]" style={{ borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '2px solid var(--surface-border)', color: 'var(--text-secondary)' }}>
                     <th style={{ padding: '1rem' }}>Date</th>

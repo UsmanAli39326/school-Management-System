@@ -26,7 +26,8 @@ import {
   CreditCard,
   ArrowRight,
   ExternalLink,
-  Receipt
+  Receipt,
+  Building2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getClasses, getActiveSession } from '@/firebase/db/academic';
@@ -234,72 +235,79 @@ export default function SchoolDashboard() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']}>
-      <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '2rem', paddingBottom: '4rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Header Section */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1.5rem',
-            backgroundColor: '#ffffff',
-            padding: '1.5rem 1.75rem',
-            borderRadius: '1rem',
-            border: '1px solid rgba(226, 232, 240, 0.95)',
-            borderTop: '3px solid var(--primary-color)',
-            boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: '280px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
-                {schoolInfo?.name || 'School Dashboard'}
-              </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Badge variant="success" icon={Shield} style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, padding: '0.25rem 0.625rem' }}>
-                  {role?.replace('_', ' ') || 'STAFF'}
-                </Badge>
-                {activeSession && (
-                  <Badge variant="info" icon={Clock} style={{ fontSize: '0.75rem', fontWeight: 500, padding: '0.25rem 0.625rem' }}>
-                    Active Session: {activeSession.name}
-                  </Badge>
+        <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm">
+          {/* Subtle Decorative Background Glow */}
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            {/* Left Info: Icon Avatar + School Info + Greeting */}
+            <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-[var(--primary-color)] to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+                {schoolInfo?.logoUrl ? (
+                  <img src={schoolInfo.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-2xl" />
+                ) : (
+                  <Building2 className="w-6 h-6 sm:w-7 sm:h-7" />
                 )}
               </div>
-            </div>
-            <div style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
-              <span>{getTimeGreeting()},</span>
-              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                {currentUser?.displayName || currentUser?.name || currentUser?.email || 'User'}
-              </strong>
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', flexShrink: 0 }}>
-            {['SCHOOL_ADMIN'].includes(role) && (
-              <Button variant="primary" icon={BookOpen} onClick={() => router.push('/school/classes')}>
-                Manage Classes
+              <div className="flex flex-col gap-1 min-w-0">
+                {/* Greeting */}
+                <div className="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                  <span>{getTimeGreeting()},</span>
+                  <strong className="text-slate-900 font-semibold">
+                    {currentUser?.displayName || currentUser?.name || currentUser?.email || 'User'}
+                  </strong>
+                  <span>👋</span>
+                </div>
+
+                {/* School Name */}
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate leading-tight">
+                  {schoolInfo?.name || 'School Dashboard'}
+                </h1>
+
+                {/* Badges Pill Row */}
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  <Badge variant="success" icon={Shield} className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5">
+                    {role?.replace('_', ' ') || 'STAFF'}
+                  </Badge>
+                  {activeSession && (
+                    <Badge variant="info" icon={Clock} className="text-[11px] font-medium px-2.5 py-0.5">
+                      Active Session: {activeSession.name}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Action Bar */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
+              {['SCHOOL_ADMIN'].includes(role) && (
+                <Button variant="primary" icon={BookOpen} onClick={() => router.push('/school/classes')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                  Manage Classes
+                </Button>
+              )}
+              {['SCHOOL_ADMIN'].includes(role) && (
+                <Button variant="outline" icon={Sparkles} onClick={() => router.push('/school/sessions')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                  Academic Sessions
+                </Button>
+              )}
+              {role === 'ACCOUNTANT' && (
+                <Button variant="primary" icon={CreditCard} onClick={() => router.push('/school/fees?tab=collection')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                  Fee Collection
+                </Button>
+              )}
+              {role === 'RECEPTIONIST' && (
+                <Button variant="primary" icon={UserPlus} onClick={() => router.push('/school/students/admission')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                  Admit Student
+                </Button>
+              )}
+              <Button variant="outline" icon={LogOut} onClick={() => setShowLogoutModal(true)} className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center text-xs sm:text-sm py-2 text-slate-600 hover:text-rose-600 hover:border-rose-200">
+                Sign Out
               </Button>
-            )}
-            {['SCHOOL_ADMIN'].includes(role) && (
-              <Button variant="outline" icon={Sparkles} onClick={() => router.push('/school/sessions')}>
-                Academic Sessions
-              </Button>
-            )}
-            {role === 'ACCOUNTANT' && (
-              <Button variant="primary" icon={CreditCard} onClick={() => router.push('/school/fees?tab=collection')}>
-                Fee Collection
-              </Button>
-            )}
-            {role === 'RECEPTIONIST' && (
-              <Button variant="primary" icon={UserPlus} onClick={() => router.push('/school/students/admission')}>
-                Admit Student
-              </Button>
-            )}
-            <Button variant="outline" icon={LogOut} onClick={() => setShowLogoutModal(true)}>
-              Sign Out
-            </Button>
+            </div>
           </div>
         </div>
 
@@ -319,7 +327,7 @@ export default function SchoolDashboard() {
         )}
 
         {/* Concise KPI Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
           {/* KPI 1: Total Students */}
           {showStudentKpi && (

@@ -33,9 +33,9 @@ export default function DueFeesReportPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
             <ArrowLeft size={24} />
           </button>
@@ -50,7 +50,7 @@ export default function DueFeesReportPage() {
           </div>
         </div>
 
-        <Card style={{ marginBottom: '2rem', backgroundColor: '#fee2e2', border: '1px solid #fca5a5' }}>
+        <Card style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5' }}>
           <div style={{ textAlign: 'center', color: 'var(--danger)' }}>
             <p style={{ margin: 0, fontWeight: 600, textTransform: 'uppercase', fontSize: '0.875rem' }}>Total Outstanding Amount</p>
             <h2 style={{ margin: '0.5rem 0 0 0', fontSize: '2.5rem' }}>PKR {totalOutstanding.toLocaleString()}</h2>
@@ -68,8 +68,8 @@ export default function DueFeesReportPage() {
           </Card>
         ) : (
           <Card>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]" style={{ borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
                     <th style={{ padding: '1rem', color: 'var(--text-secondary)' }}>Student Name</th>

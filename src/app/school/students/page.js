@@ -90,9 +90,9 @@ export default function StudentRecordsPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1>Student Records</h1>
             <p style={{ color: 'var(--text-secondary)' }}>Manage all enrolled students</p>
@@ -107,37 +107,39 @@ export default function StudentRecordsPage() {
           </div>
         </div>
 
-        <Card style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1, minWidth: '250px' }}>
-            <Input 
-              icon={Search}
-              label="Search Students"
-              placeholder="Search by Name or Admission No..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div style={{ width: '200px' }}>
-            <Select 
-              label="Class"
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              placeholder="All Classes"
-            >
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
-          </div>
-          <div style={{ width: '200px' }}>
-            <Select 
-              label="Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              placeholder="All Statuses"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="PASSED_OUT">Passed Out</option>
-            </Select>
+        <Card style={{ padding: '1.25rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            <div>
+              <Input 
+                icon={Search}
+                label="Search Students"
+                placeholder="Search by Name or Admission No..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div>
+              <Select 
+                label="Class"
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                placeholder="All Classes"
+              >
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+            </div>
+            <div>
+              <Select 
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                placeholder="All Statuses"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="PASSED_OUT">Passed Out</option>
+              </Select>
+            </div>
           </div>
         </Card>
 
@@ -154,7 +156,7 @@ export default function StudentRecordsPage() {
             </Button>
           </Card>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredStudents.map((student) => (
               <Card 
                 key={student.id} 

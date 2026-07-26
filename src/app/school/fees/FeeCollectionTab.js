@@ -232,10 +232,10 @@ export default function FeeCollectionTab() {
       {loading ? (
         <div style={{ height: '300px', backgroundColor: 'var(--surface-border)', borderRadius: '0.75rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.75rem' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
           {/* Left Column: Student Search & Selection */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="lg:col-span-4 flex flex-col gap-4">
             <Card style={{ padding: '1.25rem' }}>
               <Input
                 icon={Search}
@@ -304,7 +304,7 @@ export default function FeeCollectionTab() {
           </div>
 
           {/* Right Column: Pending Invoices */}
-          <div>
+          <div className="lg:col-span-8">
             {selectedStudent ? (
               <Card style={{ padding: '1.5rem' }}>
                 <h3 style={{ margin: 0, marginBottom: '1.25rem', fontSize: '1.125rem', fontWeight: 700 }}>Pending Invoices</h3>

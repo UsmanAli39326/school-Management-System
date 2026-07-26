@@ -21,8 +21,8 @@ function FeeManagementContent() {
   }, [searchParams]);
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
+    <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
+      <div>
         <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, marginBottom: '0.5rem' }}>
           <Wallet color="var(--primary-color)" size={32} /> Fee Management
         </h1>
@@ -32,7 +32,7 @@ function FeeManagementContent() {
       </div>
 
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '2rem' }}>
+      <div className="flex flex-nowrap sm:flex-wrap overflow-x-auto scrollbar-none gap-2 border-b border-slate-200 mb-4">
         <button
           onClick={() => setActiveTab('collection')}
           style={{

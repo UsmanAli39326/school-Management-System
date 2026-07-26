@@ -137,7 +137,7 @@ export default function InvoicesTab() {
       </div>
 
       {/* Status Filter Pills */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="flex flex-nowrap sm:flex-wrap overflow-x-auto scrollbar-none gap-2 items-center">
         {['ALL', 'UNPAID', 'PARTIAL', 'PAID', 'OVERDUE'].map((status) => (
           <button
             key={status}
@@ -177,8 +177,8 @@ export default function InvoicesTab() {
         </Card>
       ) : (
         <Card style={{ padding: '0', overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px]" style={{ borderCollapse: 'collapse', fontSize: '0.875rem' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '2px solid var(--surface-border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '1rem' }}>Invoice #</th>

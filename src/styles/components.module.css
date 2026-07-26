@@ -281,9 +281,15 @@
   border: 1px solid var(--surface-border);
   border-radius: 1rem;
   /* softer corners */
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal);
+}
+
+@media (min-width: 640px) {
+  .card {
+    padding: 2rem;
+  }
 }
 
 .cardHover:hover {
@@ -349,7 +355,10 @@
   border: 1px solid var(--surface-border);
   border-radius: 1rem;
   width: 100%;
-  max-width: 500px;
+  max-width: 550px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   animation: modalSlide 0.25s ease-out;

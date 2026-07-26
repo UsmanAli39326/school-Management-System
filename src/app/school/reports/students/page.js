@@ -53,9 +53,9 @@ export default function StudentListReportPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']}>
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
             <ArrowLeft size={24} />
           </button>
@@ -69,29 +69,31 @@ export default function StudentListReportPage() {
           </div>
         </div>
 
-        <Card style={{ marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Filter by Class</label>
-            <select 
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
-            >
-              <option value="">All Classes</option>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Status</label>
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
-            >
-              <option value="">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive / Alumni</option>
-            </select>
+        <Card style={{ padding: '1.25rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            <div>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Filter by Class</label>
+              <select 
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="">All Classes</option>
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>Status</label>
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="">All Statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive / Alumni</option>
+              </select>
+            </div>
           </div>
         </Card>
 
@@ -101,8 +103,8 @@ export default function StudentListReportPage() {
           <Card>
             <div style={{ marginBottom: '1rem', fontWeight: 600 }}>Total Students: {filteredStudents.length}</div>
             
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px]" style={{ borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
                     <th style={{ padding: '1rem', color: 'var(--text-secondary)' }}>Admission #</th>

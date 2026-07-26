@@ -279,10 +279,10 @@ export default function StudentProfilePage({ params }) {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST', 'TEACHER']}>
-      <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+      <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
         
         {/* Hide header during print */}
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div className="no-print flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <Button variant="outline" icon={ArrowLeft} onClick={() => router.push('/school/students')} style={{ padding: '0.5rem' }}>
             Back to Records
           </Button>
@@ -304,7 +304,7 @@ export default function StudentProfilePage({ params }) {
         </div>
 
         {/* Profile Header Card */}
-        <Card style={{ marginBottom: '1.5rem', display: 'flex', gap: '2rem', alignItems: 'center' }}>
+        <Card className="flex flex-col sm:flex-row gap-6 items-start sm:items-center mb-6">
           <div style={{ flexShrink: 0 }}>
             {student.personalInfo?.photoUrl ? (
               <img 
@@ -351,7 +351,7 @@ export default function StudentProfilePage({ params }) {
         </Card>
 
         {/* Tabs */}
-        <div className="no-print" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid var(--border-color)' }}>
+        <div className="no-print flex flex-nowrap sm:flex-wrap overflow-x-auto scrollbar-none gap-4 mb-6 border-b border-slate-200">
           <button 
             onClick={() => setActiveTab('PROFILE')}
             style={{ 
@@ -390,7 +390,7 @@ export default function StudentProfilePage({ params }) {
         </div>
 
         {activeTab === 'PROFILE' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                 <UserCircle size={20} color="var(--primary-color)" /> Personal Details

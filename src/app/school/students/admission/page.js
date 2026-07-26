@@ -149,7 +149,7 @@ export default function StudentAdmissionPage() {
     switch (currentStep) {
       case 0:
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Admission Number *" value={formData.admissionNumber} onChange={e => handleInputChange(null, 'admissionNumber', e.target.value)} />
             <Input label="Admission Date *" type="date" value={formData.admissionDate} onChange={e => handleInputChange(null, 'admissionDate', e.target.value)} />
             <Input label="Roll Number" value={formData.rollNumber} onChange={e => handleInputChange(null, 'rollNumber', e.target.value)} />
@@ -176,7 +176,7 @@ export default function StudentAdmissionPage() {
         );
       case 1:
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Full Name *" value={formData.personalInfo.fullName} onChange={e => handleInputChange('personalInfo', 'fullName', e.target.value)} />
             <Input label="Date of Birth *" type="date" value={formData.personalInfo.dob} onChange={e => handleInputChange('personalInfo', 'dob', e.target.value)} />
             
@@ -197,7 +197,7 @@ export default function StudentAdmissionPage() {
         );
       case 2:
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Father's Name *" value={formData.parentInfo.fatherName} onChange={e => handleInputChange('parentInfo', 'fatherName', e.target.value)} />
             <Input label="Mother's Name" value={formData.parentInfo.motherName} onChange={e => handleInputChange('parentInfo', 'motherName', e.target.value)} />
             <Input label="Guardian's Name" value={formData.parentInfo.guardianName} onChange={e => handleInputChange('parentInfo', 'guardianName', e.target.value)} />
@@ -209,10 +209,10 @@ export default function StudentAdmissionPage() {
         );
       case 3:
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+          <div className="flex flex-col gap-4">
             <Input label="Current Address *" value={formData.addresses.current} onChange={e => handleInputChange('addresses', 'current', e.target.value)} />
             <Input label="Permanent Address" value={formData.addresses.permanent} onChange={e => handleInputChange('addresses', 'permanent', e.target.value)} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="City *" value={formData.addresses.city} onChange={e => handleInputChange('addresses', 'city', e.target.value)} />
               <Input label="Postal Code" value={formData.addresses.postalCode} onChange={e => handleInputChange('addresses', 'postalCode', e.target.value)} />
             </div>
@@ -240,7 +240,7 @@ export default function StudentAdmissionPage() {
 
   return (
     <ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'RECEPTIONIST']}>
-      <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+      <div className="max-w-4xl w-full mx-auto pb-12">
         
         <div style={{ marginBottom: '2rem' }}>
           <Button variant="outline" icon={ArrowLeft} onClick={() => router.push('/school/students')} style={{ padding: '0.5rem' }}>
@@ -248,13 +248,13 @@ export default function StudentAdmissionPage() {
           </Button>
         </div>
 
-        <Card style={{ padding: '2rem' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '2rem' }}>New Admission: {STEPS[currentStep]}</h2>
+        <Card style={{ padding: '1.5rem' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>New Admission: {STEPS[currentStep]}</h2>
           
           {/* Progress Bar */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+          <div className="flex flex-nowrap sm:flex-wrap overflow-x-auto scrollbar-none gap-2 mb-6">
             {STEPS.map((step, index) => (
-              <div key={index} style={{ flex: 1 }}>
+              <div key={index} className="flex-1 min-w-[90px]">
                 <div style={{ 
                   height: '4px', 
                   backgroundColor: index <= currentStep ? 'var(--primary-color)' : 'var(--border-color)',

@@ -46,22 +46,32 @@ export default function TeacherDashboard() {
   const todaySchedule = getTodaySchedule();
 
   return (
-    <div>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '2rem'
-      }}>
-        <div>
-          <span className="eyebrow">Overview</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
-            <h1 style={{ fontSize: '1.5rem' }}>Teacher Dashboard</h1>
-            <Badge variant="success" icon={CheckCircle}>{role}</Badge>
+    <div className="flex flex-col gap-6">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-[var(--primary-color)] to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+              <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <div>
+              <div className="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                <span>Welcome back,</span>
+                <strong className="text-slate-900 font-semibold">
+                  {currentUser?.displayName || currentUser?.name || currentUser?.email || 'Teacher'}
+                </strong>
+                <span>👋</span>
+              </div>
+              <div className="flex items-center gap-2.5 mt-0.5">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight margin-0">Teacher Dashboard</h1>
+                <Badge variant="success" icon={CheckCircle} className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5">
+                  TEACHER
+                </Badge>
+              </div>
+            </div>
           </div>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Welcome back, {currentUser?.displayName || currentUser?.name || currentUser?.email}
-          </p>
         </div>
       </div>
 
