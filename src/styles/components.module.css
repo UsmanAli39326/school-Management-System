@@ -275,6 +275,8 @@
 
 /* Card Styles */
 .card {
+  position: relative;
+  z-index: 1;
   background-color: var(--surface-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -284,6 +286,11 @@
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal);
+}
+
+.card:focus-within,
+.card:has([aria-expanded="true"]) {
+  z-index: 20;
 }
 
 @media (min-width: 640px) {

@@ -67,7 +67,7 @@ export default function TeacherClassesPage() {
   const handleOpenAttendanceModal = () => {
     // Default all students to PRESENT
     const initial = {};
-    students.forEach((s) => {
+    (students || []).forEach((s) => {
       initial[s.id] = 'PRESENT';
     });
     setAttendanceRecords(initial);

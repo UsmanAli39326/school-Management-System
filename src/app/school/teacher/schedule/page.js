@@ -41,7 +41,7 @@ export default function TeacherSchedulePage() {
       setSubjects(fetchedSubjects);
 
       const cmap = {};
-      fetchedClasses.forEach((c) => { cmap[c.id] = c.name; });
+      (fetchedClasses || []).forEach((c) => { cmap[c.id] = c.name; });
       setClassesMap(cmap);
     } catch (err) {
       console.error('Error fetching teacher schedule:', err);
@@ -51,9 +51,9 @@ export default function TeacherSchedulePage() {
   };
 
   const getSchedulesForDay = (day) => {
-    return schedules
-      .filter((s) => s.dayOfWeek === day)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    return (schedules || [])
+      .filter((s) => s && s.dayOfWeek === day)
+      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
   };
 
   const activeDaysToRender = selectedDay === 'ALL' ? DAYS_OF_WEEK : [selectedDay];

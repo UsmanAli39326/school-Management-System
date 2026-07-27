@@ -24,7 +24,7 @@ export default function Select({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const selectId = id || (typeof label === 'string' && label.trim() ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
   const errorId = selectId ? `${selectId}-error` : undefined;
 
   // Extract normalized options from optionsProp OR children (<option> tags)
@@ -96,14 +96,14 @@ export default function Select({
   const isPlaceholderActive = !selectedOption || selectedOption.value === '';
 
   return (
-    <div className={styles.fieldGroup} ref={containerRef}>
+    <div className={styles.fieldGroup} ref={containerRef} style={{ position: 'relative', zIndex: isOpen ? 100 : 'auto' }}>
       {label && (
         <label htmlFor={selectId} className={styles.label}>
           {label}
         </label>
       )}
 
-      <div style={{ position: 'relative', width: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', zIndex: isOpen ? 100 : 'auto' }}>
         {/* Trigger Button */}
         <button
           type="button"

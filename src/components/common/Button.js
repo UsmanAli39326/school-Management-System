@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 import styles from '@/styles/components.module.css';
@@ -15,6 +16,8 @@ export default function Button({
   iconPosition = 'left',
   className,
   type = 'button',
+  href,
+  onClick,
   ...props
 }) {
   const variantClass = {
@@ -31,18 +34,39 @@ export default function Button({
     return null;
   };
 
+  const content = (
+    <>
+      {iconPosition === 'left' && renderIcon()}
+      {children && <span>{children}</span>}
+      {iconPosition === 'right' && renderIcon()}
+    </>
+  );
+
+  if (href && !disabled) {
+    return (
+      <Link
+        href={href}
+        className={clsx(styles.btn, variantClass, className)}
+        onClick={onClick}
+        {...props}
+      >
+        {content}
+      </Link>
+    );
+  }
+
   return (
     <button
       type={type}
       className={clsx(styles.btn, variantClass, className)}
       disabled={disabled || isLoading}
       aria-busy={isLoading ? 'true' : undefined}
+      onClick={onClick}
       {...props}
     >
-      {iconPosition === 'left' && renderIcon()}
-      {children && <span>{children}</span>}
-      {iconPosition === 'right' && renderIcon()}
+      {content}
     </button>
   );
 }
+
 

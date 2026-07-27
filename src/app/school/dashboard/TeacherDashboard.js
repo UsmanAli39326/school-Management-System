@@ -11,7 +11,7 @@ import { getSchedulesForTeacher } from '@/firebase/db/schedules';
 import { BookOpen, Calendar, Clock, CheckCircle, GraduationCap } from 'lucide-react';
 
 export default function TeacherDashboard() {
-  const { currentUser, role, schoolId } = useAuth();
+  const { currentUser, userProfile, role, schoolId } = useAuth();
   const router = useRouter();
 
   const [subjects, setSubjects] = useState([]);
@@ -21,26 +21,35 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (schoolId && currentUser?.uid) {
       loadData();
+    } else if (!schoolId && currentUser?.uid) {
+      setLoading(false);
     }
   }, [schoolId, currentUser]);
 
   const loadData = async () => {
     setLoading(true);
-    // Note: currentUser.uid might not match the teacherId if teacherId was random, 
-    // but in a real app we'd map uid to teacherId. Let's assume we can fetch by currentUser.uid.
-    const fetchedSubjects = await getSubjectsForTeacher(schoolId, currentUser.uid);
-    const fetchedSchedules = await getSchedulesForTeacher(schoolId, currentUser.uid);
-    setSubjects(fetchedSubjects);
-    setSchedules(fetchedSchedules);
-    setLoading(false);
+    try {
+      const [fetchedSubjects, fetchedSchedules] = await Promise.all([
+        getSubjectsForTeacher(schoolId, currentUser.uid),
+        getSchedulesForTeacher(schoolId, currentUser.uid)
+      ]);
+      setSubjects(fetchedSubjects || []);
+      setSchedules(fetchedSchedules || []);
+    } catch (err) {
+      console.error('Error loading teacher dashboard data:', err);
+      setSubjects([]);
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getTodaySchedule = () => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const today = days[new Date().getDay()];
-    return schedules
-      .filter(s => s.dayOfWeek === today)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    return (schedules || [])
+      .filter(s => s && s.dayOfWeek === today)
+      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
   };
 
   const todaySchedule = getTodaySchedule();
@@ -48,7 +57,7 @@ export default function TeacherDashboard() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm">
+      <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm" style={{ borderTop: '4px solid var(--primary-color)' }}>
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -60,7 +69,7 @@ export default function TeacherDashboard() {
               <div className="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1.5">
                 <span>Welcome back,</span>
                 <strong className="text-slate-900 font-semibold">
-                  {currentUser?.displayName || currentUser?.name || currentUser?.email || 'Teacher'}
+                  {userProfile?.displayName || userProfile?.name || currentUser?.displayName || currentUser?.email || 'Teacher'}
                 </strong>
                 <span>👋</span>
               </div>
@@ -107,10 +116,10 @@ export default function TeacherDashboard() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {todaySchedule.map(sch => {
-                  const subject = subjects.find(s => s.id === sch.subjectId);
+                {todaySchedule.map((sch, idx) => {
+                  const subject = (subjects || []).find(s => s.id === sch.subjectId);
                   return (
-                    <div key={sch.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '0.5rem' }}>
+                    <div key={sch.id || sch.scheduleId || idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '0.5rem' }}>
                       <div style={{ flexShrink: 0, fontWeight: 600, color: 'var(--text-primary)', width: '100px' }}>
                         {sch.startTime}
                       </div>
@@ -133,13 +142,13 @@ export default function TeacherDashboard() {
           <h2 style={{ fontSize: '1.125rem', marginTop: '0.25rem', marginBottom: '1rem' }}>Quick Actions</h2>
           <Card style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <Button variant="outline" icon={GraduationCap} onClick={() => router.push('/school/teacher/grading')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+              <Button variant="outline" icon={GraduationCap} href="/school/teacher/grading" style={{ width: '100%', justifyContent: 'flex-start' }}>
                 Enter Grades / Marks
               </Button>
-              <Button variant="outline" icon={Calendar} onClick={() => router.push('/school/teacher/schedule')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+              <Button variant="outline" icon={Calendar} href="/school/teacher/schedule" style={{ width: '100%', justifyContent: 'flex-start' }}>
                 My Full Schedule
               </Button>
-              <Button variant="outline" icon={BookOpen} onClick={() => router.push('/school/teacher/classes')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+              <Button variant="outline" icon={BookOpen} href="/school/teacher/classes" style={{ width: '100%', justifyContent: 'flex-start' }}>
                 My Classes & Students
               </Button>
             </div>

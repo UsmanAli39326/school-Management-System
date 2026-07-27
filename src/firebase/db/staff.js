@@ -10,7 +10,7 @@ export async function createInvitation(schoolId, email, role, adminName, departm
   const cleanEmail = email.trim().toLowerCase();
   const inviteId = cleanEmail.replace(/[^a-z0-9]/g, '_');
   const docRef = doc(db, INVITATIONS_COL, inviteId);
-  
+
   const invite = {
     inviteId,
     email: cleanEmail,

@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import '@/styles/globals.css';
 import { AuthContextProvider } from '@/context/AuthContext';
 import { AlertProvider } from '@/context/AlertContext';
+import PageTransitionLoader from '@/components/common/PageTransitionLoader';
 
 export const metadata = {
   title: 'School Management System | Premium Enterprise Portal',
@@ -13,6 +15,9 @@ export default function RootLayout({ children }) {
       <body suppressHydrationWarning>
         <AuthContextProvider>
           <AlertProvider>
+            <Suspense fallback={null}>
+              <PageTransitionLoader />
+            </Suspense>
             {children}
           </AlertProvider>
         </AuthContextProvider>
@@ -20,3 +25,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+

@@ -36,7 +36,7 @@ export default function DueFeesReportPage() {
       <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+          <button onClick={() => router.push('/school/reports')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
             <ArrowLeft size={24} />
           </button>
           <div>

@@ -17,7 +17,9 @@ export default function Modal({ isOpen, onClose, title, children }) {
 
   if (!isOpen) return null;
 
-  const titleId = title ? `modal-title-${title.toLowerCase().replace(/\s+/g, '-')}` : undefined;
+  const titleId = typeof title === 'string' && title.trim()
+    ? `modal-title-${title.toLowerCase().replace(/\s+/g, '-')}`
+    : undefined;
 
   return (
     <div className={styles.modalOverlay} onClick={onClose} role="presentation">

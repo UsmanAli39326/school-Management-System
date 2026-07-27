@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Card from '@/components/common/Card';
@@ -153,7 +154,11 @@ export default function SchoolDashboard() {
   };
 
   if (role === 'TEACHER') {
-    return <TeacherDashboard />;
+    return (
+      <ProtectedRoute allowedRoles={['TEACHER']}>
+        <TeacherDashboard />
+      </ProtectedRoute>
+    );
   }
 
   const formatCurrency = (val) => {
@@ -164,16 +169,8 @@ export default function SchoolDashboard() {
     }).format(val || 0);
   };
 
-  const ActionCard = ({ icon: Icon, label, color, onClick }) => (
-    <div
-      onClick={onClick}
-      style={{
-        cursor: 'pointer',
-        height: '100%',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-      }}
-      className="action-card-hover"
-    >
+  const ActionCard = ({ icon: Icon, label, color, onClick, href }) => {
+    const cardContent = (
       <Card
         hoverable
         style={{
@@ -220,8 +217,39 @@ export default function SchoolDashboard() {
           </div>
         </div>
       </Card>
-    </div>
-  );
+    );
+
+    if (href) {
+      return (
+        <Link
+          href={href}
+          style={{
+            textDecoration: 'none',
+            display: 'block',
+            height: '100%',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+          }}
+          className="action-card-hover"
+        >
+          {cardContent}
+        </Link>
+      );
+    }
+
+    return (
+      <div
+        onClick={onClick}
+        style={{
+          cursor: 'pointer',
+          height: '100%',
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+        }}
+        className="action-card-hover"
+      >
+        {cardContent}
+      </div>
+    );
+  };
 
   const showStudentKpi = ['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role);
   const showClassesKpi = ['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role);
@@ -238,7 +266,7 @@ export default function SchoolDashboard() {
       <div className="max-w-7xl w-full mx-auto pb-12 flex flex-col gap-6">
 
         {/* Header Section */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm" style={{ borderTop: '4px solid var(--primary-color)' }}>
           {/* Subtle Decorative Background Glow */}
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
 
@@ -285,22 +313,22 @@ export default function SchoolDashboard() {
             {/* Right Action Bar */}
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
               {['SCHOOL_ADMIN'].includes(role) && (
-                <Button variant="primary" icon={BookOpen} onClick={() => router.push('/school/classes')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                <Button variant="primary" icon={BookOpen} href="/school/classes" className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
                   Manage Classes
                 </Button>
               )}
               {['SCHOOL_ADMIN'].includes(role) && (
-                <Button variant="outline" icon={Sparkles} onClick={() => router.push('/school/sessions')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                <Button variant="outline" icon={Sparkles} href="/school/sessions" className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
                   Academic Sessions
                 </Button>
               )}
               {role === 'ACCOUNTANT' && (
-                <Button variant="primary" icon={CreditCard} onClick={() => router.push('/school/fees?tab=collection')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                <Button variant="primary" icon={CreditCard} href="/school/fees?tab=collection" className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
                   Fee Collection
                 </Button>
               )}
               {role === 'RECEPTIONIST' && (
-                <Button variant="primary" icon={UserPlus} onClick={() => router.push('/school/students/admission')} className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
+                <Button variant="primary" icon={UserPlus} href="/school/students/admission" className="w-full sm:w-auto justify-center text-xs sm:text-sm py-2">
                   Admit Student
                 </Button>
               )}
@@ -412,25 +440,25 @@ export default function SchoolDashboard() {
                   icon={BookOpen}
                   label="Manage Classes"
                   color="#3b82f6"
-                  onClick={() => router.push('/school/classes')}
+                  href="/school/classes"
                 />
                 <ActionCard
                   icon={BookOpen}
                   label="Subject Catalog"
                   color="#8b5cf6"
-                  onClick={() => router.push('/school/academic/subjects')}
+                  href="/school/academic/subjects"
                 />
                 <ActionCard
                   icon={Calendar}
                   label="Master Timetable"
                   color="#0ea5e9"
-                  onClick={() => router.push('/school/academic/timetable')}
+                  href="/school/academic/timetable"
                 />
                 <ActionCard
                   icon={Sparkles}
                   label="Academic Sessions"
                   color="#6366f1"
-                  onClick={() => router.push('/school/sessions')}
+                  href="/school/sessions"
                 />
               </div>
             </div>
@@ -444,25 +472,25 @@ export default function SchoolDashboard() {
                   icon={UserPlus}
                   label="Admit Student"
                   color="#10b981"
-                  onClick={() => router.push('/school/students/admission')}
+                  href="/school/students/admission"
                 />
                 <ActionCard
                   icon={Users}
                   label="Student Directory"
                   color="#14b8a6"
-                  onClick={() => router.push('/school/students')}
+                  href="/school/students"
                 />
                 <ActionCard
                   icon={UserCog}
                   label="Manage Staff"
                   color="#6366f1"
-                  onClick={() => router.push('/school/staff')}
+                  href="/school/staff"
                 />
                 <ActionCard
                   icon={FileBadge}
                   label="Certificates"
                   color="#f59e0b"
-                  onClick={() => router.push('/school/students/certificates')}
+                  href="/school/students/certificates"
                 />
               </div>
             </div>
@@ -476,25 +504,25 @@ export default function SchoolDashboard() {
                   icon={CreditCard}
                   label="Fee Collection"
                   color="#ef4444"
-                  onClick={() => router.push('/school/fees?tab=collection')}
+                  href="/school/fees?tab=collection"
                 />
                 <ActionCard
                   icon={FileText}
                   label="Manage Expenses"
                   color="#f43f5e"
-                  onClick={() => router.push('/school/accounting/expenses')}
+                  href="/school/accounting/expenses"
                 />
                 <ActionCard
                   icon={BarChart3}
                   label="Reports Hub"
                   color="#10b981"
-                  onClick={() => router.push('/school/reports')}
+                  href="/school/reports"
                 />
                 <ActionCard
                   icon={FileText}
                   label="Financial Summary"
                   color="#84cc16"
-                  onClick={() => router.push('/school/accounting/summary')}
+                  href="/school/accounting/summary"
                 />
               </div>
             </div>
@@ -513,25 +541,25 @@ export default function SchoolDashboard() {
                 icon={CreditCard}
                 label="Fee Collection"
                 color="#ef4444"
-                onClick={() => router.push('/school/fees?tab=collection')}
+                href="/school/fees?tab=collection"
               />
               <ActionCard
                 icon={FileText}
                 label="Manage Expenses"
                 color="#f43f5e"
-                onClick={() => router.push('/school/accounting/expenses')}
+                href="/school/accounting/expenses"
               />
               <ActionCard
                 icon={BarChart3}
                 label="Reports Hub"
                 color="#10b981"
-                onClick={() => router.push('/school/reports')}
+                href="/school/reports"
               />
               <ActionCard
                 icon={FileText}
                 label="Financial Summary"
                 color="#84cc16"
-                onClick={() => router.push('/school/accounting/summary')}
+                href="/school/accounting/summary"
               />
             </div>
           </Card>
@@ -549,19 +577,19 @@ export default function SchoolDashboard() {
                 icon={UserPlus}
                 label="Admit Student"
                 color="#10b981"
-                onClick={() => router.push('/school/students/admission')}
+                href="/school/students/admission"
               />
               <ActionCard
                 icon={Users}
                 label="Student Directory"
                 color="#14b8a6"
-                onClick={() => router.push('/school/students')}
+                href="/school/students"
               />
               <ActionCard
                 icon={FileBadge}
                 label="Certificates"
                 color="#f59e0b"
-                onClick={() => router.push('/school/students/certificates')}
+                href="/school/students/certificates"
               />
             </div>
           </Card>

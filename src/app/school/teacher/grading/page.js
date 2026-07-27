@@ -8,7 +8,7 @@ import Select from '@/components/common/Select';
 import Input from '@/components/common/Input';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import { useAuth } from '@/hooks/useAuth';
-import { getSubjectsForTeacher } from '@/firebase/db/academic';
+import { getSubjectsForTeacher, getClasses } from '@/firebase/db/academic';
 import { getStudentsByClass } from '@/firebase/db/students';
 import { recordGrade, getGradesForSubject } from '@/firebase/db/grades';
 import { CheckCircle, Save, AlertCircle, Download, Printer, Inbox } from 'lucide-react';
@@ -21,6 +21,7 @@ export default function TeacherGradingPage() {
   const { showAlert } = useAlert();
 
   const [subjects, setSubjects] = useState([]);
+  const [classesMap, setClassesMap] = useState({});
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('Midterm');
 
@@ -51,10 +52,17 @@ export default function TeacherGradingPage() {
   const loadSubjects = async () => {
     setLoading(true);
     try {
-      const data = await getSubjectsForTeacher(schoolId, currentUser.uid);
-      setSubjects(data);
-      if (data.length > 0) {
-        setSelectedSubjectId(data[0].id);
+      const [fetchedSubjects, fetchedClasses] = await Promise.all([
+        getSubjectsForTeacher(schoolId, currentUser.uid),
+        getClasses(schoolId)
+      ]);
+      const cMap = {};
+      (fetchedClasses || []).forEach(c => { cMap[c.id] = c.name; });
+      setClassesMap(cMap);
+
+      setSubjects(fetchedSubjects || []);
+      if (fetchedSubjects && fetchedSubjects.length > 0) {
+        setSelectedSubjectId(fetchedSubjects[0].id);
       }
     } catch (err) {
       console.error('Error loading teacher subjects:', err);
@@ -75,10 +83,10 @@ export default function TeacherGradingPage() {
         getGradesForSubject(schoolId, subject.classId, subject.id, selectedTerm)
       ]);
 
-      setStudents(classStudents);
+      setStudents(classStudents || []);
 
       const gradeMap = {};
-      existingGrades.forEach((g) => {
+      (existingGrades || []).forEach((g) => {
         gradeMap[g.studentId] = {
           marksObtained: g.marksObtained !== undefined && g.marksObtained !== null ? String(g.marksObtained) : '',
           totalMarks: g.totalMarks || 100,
@@ -86,7 +94,7 @@ export default function TeacherGradingPage() {
         };
       });
 
-      classStudents.forEach((s) => {
+      (classStudents || []).forEach((s) => {
         if (!gradeMap[s.id]) {
           gradeMap[s.id] = { marksObtained: '', totalMarks: 100, remarks: '' };
         }
@@ -258,9 +266,14 @@ export default function TeacherGradingPage() {
                 value={selectedSubjectId}
                 onChange={(e) => setSelectedSubjectId(e.target.value)}
               >
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name} (Class ID: {s.classId})</option>
-                ))}
+                {subjects.map((s) => {
+                  const cleanName = (s.name || '').replace(/^,+|,+$/g, '').trim();
+                  const rawClass = (s.classId || '').replace(/^,+|,+$/g, '').trim();
+                  const className = classesMap[rawClass] || classesMap[s.classId] || (rawClass ? `Class: ${rawClass}` : 'Class');
+                  return (
+                    <option key={s.id} value={s.id}>{cleanName} ({className})</option>
+                  );
+                })}
               </Select>
 
               <Select

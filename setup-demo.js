@@ -17,7 +17,8 @@ async function setupDemo() {
     { email: 'superadmin@devtechnoz.com', password: 'admin123', role: 'SUPER_ADMIN', schoolId: 'GLOBAL', displayName: 'Super Admin' },
     { email: 'admin@apexschool.com', password: 'school123', role: 'SCHOOL_ADMIN', schoolId: 'apex-001', displayName: 'School Admin' },
     { email: 'accountant@apexschool.com', password: 'accountant123', role: 'ACCOUNTANT', schoolId: 'apex-001', displayName: 'Accountant' },
-    { email: 'receptionist@apexschool.com', password: 'reception123', role: 'RECEPTIONIST', schoolId: 'apex-001', displayName: 'Receptionist' }
+    { email: 'receptionist@apexschool.com', password: 'reception123', role: 'RECEPTIONIST', schoolId: 'apex-001', displayName: 'Receptionist' },
+    { email: 'teacher@apexschool.com', password: 'teacher123', role: 'TEACHER', schoolId: 'apex-001', displayName: 'Sarah Jenkins' }
   ];
 
   console.log("Setting up demo school...");

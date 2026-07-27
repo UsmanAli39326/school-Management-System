@@ -15,7 +15,7 @@ export default function Input({
   required,
   ...props
 }) {
-  const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const inputId = id || (typeof label === 'string' && label.trim() ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
   const errorId = inputId ? `${inputId}-error` : undefined;
 
   return (
