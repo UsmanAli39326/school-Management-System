@@ -120,14 +120,101 @@ h6 {
   border-radius: 2px;
 }
 
-@media (max-width: 860px) {
+/* Login Container & Responsive Layout */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  background-color: var(--app-bg);
+}
+
+.login-brand-panel {
+  flex: 1 1 44%;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-auth-panel {
+  flex: 1 1 56%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  position: relative;
+  min-height: 100vh;
+}
+
+.login-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.625rem;
+}
+
+@media (max-width: 960px) {
+  .login-container {
+    flex-direction: column;
+  }
+
   .login-brand-panel {
-    display: none;
+    display: none !important;
   }
 
   .login-mobile-header {
     display: block !important;
   }
+
+  .login-auth-panel {
+    flex: 1 1 100%;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-auth-panel {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .login-demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* DevTechnoz Global Footer Styling */
+.devtechnoz-footer {
+  width: 100%;
+  padding: 1.25rem 1rem;
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--surface-border);
+  text-align: center;
+}
+
+.devtechnoz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.devtechnoz-brand-link {
+  color: var(--primary-color);
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.devtechnoz-brand-link:hover {
+  text-decoration: underline;
+  opacity: 0.9;
 }
 
 .glass-panel {

@@ -7,6 +7,7 @@ import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
+import Footer from '@/components/common/Footer';
 import {
   Mail,
   Lock,
@@ -108,21 +109,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        backgroundColor: 'var(--app-bg)',
-      }}
-    >
+    <div className="login-container">
       {/* Brand Hero Panel */}
-      <div style={{ flex: '1 1 44%' }} className="login-brand-panel">
+      <div className="login-brand-panel">
         <div
           style={{
-            minHeight: '100vh',
+            flex: 1,
             backgroundColor: 'var(--ink-900)',
             color: '#ffffff',
-            padding: '3.5rem 3rem',
+            padding: '3.5rem 3rem 2.5rem 3rem',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -295,41 +290,43 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Bottom Trust Indicators */}
-          <div
-            style={{
-              position: 'relative',
-              zIndex: 1,
-              display: 'flex',
-              gap: '2.5rem',
-              borderTop: '1px solid rgba(255,255,255,0.12)',
-              paddingTop: '1.5rem',
-            }}
-          >
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: '#ffffff' }}>99.9%</div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>Platform Uptime</div>
+          {/* Bottom Trust Indicators & DevTechnoz Branding */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '2.5rem',
+                borderTop: '1px solid rgba(255,255,255,0.12)',
+                paddingTop: '1.5rem',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: '#ffffff' }}>99.9%</div>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>Platform Uptime</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: '#ffffff' }}>Encrypted</div>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>Firebase Data Protection</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: '#ffffff' }}>Encrypted</div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>Firebase Data Protection</div>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <span>Powered by</span>
+              <a
+                href="https://devtechnoz.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#ffffff', fontWeight: 600, textDecoration: 'none' }}
+              >
+                DevTechnoz
+              </a>
             </div>
           </div>
         </div>
       </div>
 
       {/* Auth Form Panel */}
-      <div
-        style={{
-          flex: '1 1 56%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2rem 1.5rem',
-          position: 'relative',
-        }}
-        className="login-auth-panel"
-      >
+      <div className="login-auth-panel">
         {/* Soft background glow */}
         <div
           style={{
@@ -344,27 +341,30 @@ export default function LoginPage() {
           }}
         />
 
-        <div style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
+        <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
           {/* Mobile Header Branding */}
-          <div className="login-mobile-header" style={{ textAlign: 'center', marginBottom: '2rem', display: 'none' }}>
+          <div className="login-mobile-header" style={{ textAlign: 'center', marginBottom: '1.75rem', display: 'none' }}>
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '3rem',
-                height: '3rem',
-                borderRadius: '0.75rem',
+                width: '3.5rem',
+                height: '3.5rem',
+                borderRadius: '0.875rem',
                 backgroundColor: 'var(--primary-color)',
                 color: '#ffffff',
                 marginBottom: '0.75rem',
+                boxShadow: 'var(--shadow-glow)',
               }}
             >
-              <GraduationCap size={24} />
+              <GraduationCap size={28} />
             </div>
-            <h1 style={{ fontSize: '1.5rem', color: 'var(--text-primary)' }}>School Portal</h1>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-              Sign in to manage your school
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
+              School Management System
+            </h1>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem', marginBottom: 0 }}>
+              Multi-Tenant Enterprise Portal
             </p>
           </div>
 
@@ -703,7 +703,7 @@ export default function LoginPage() {
                 </Badge>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+              <div className="login-demo-grid">
                 {[
                   { title: 'School Admin', email: 'admin@apexschool.com', pass: 'school123', icon: '🏫', roleTag: 'Admin' },
                   { title: 'Accountant', email: 'accountant@apexschool.com', pass: 'accountant123', icon: '💰', roleTag: 'Finance' },
@@ -759,6 +759,7 @@ export default function LoginPage() {
               </div>
             </div>
           </Card>
+          <Footer style={{ borderTop: 'none', marginTop: '1rem', paddingTop: '0.5rem' }} />
         </div>
       </div>
     </div>

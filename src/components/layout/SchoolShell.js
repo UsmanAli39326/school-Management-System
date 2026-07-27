@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import Footer from '@/components/common/Footer';
 import {
   LayoutDashboard,
   Users,
@@ -228,43 +229,52 @@ export default function SchoolShell({ children }) {
         ))}
       </nav>
 
-      {/* User Info Footer */}
+      {/* User Info & Branding Footer */}
       <div style={{
         padding: '0.875rem',
         borderTop: '1px solid rgba(255,255,255,0.1)',
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
         gap: '0.625rem',
-        justifyContent: (isMobile || sidebarOpen) ? 'space-between' : 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
-          <div style={{
-            width: '2rem', height: '2rem', borderRadius: '0.375rem',
-            backgroundColor: 'rgba(255,255,255,0.1)', color: '#ffffff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0,
-          }}>
-            {initialsFor(currentUser?.email)}
-          </div>
-          {(isMobile || sidebarOpen) && (
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px' }}>
-                {currentUser?.email || 'User'}
-              </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.625rem',
+          justifyContent: (isMobile || sidebarOpen) ? 'space-between' : 'center',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
+            <div style={{
+              width: '2rem', height: '2rem', borderRadius: '0.375rem',
+              backgroundColor: 'rgba(255,255,255,0.1)', color: '#ffffff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0,
+            }}>
+              {initialsFor(currentUser?.email)}
             </div>
-          )}
-        </div>
-        {(isMobile || sidebarOpen) && (
+            {(isMobile || sidebarOpen) && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px' }}>
+                  {currentUser?.email || 'User'}
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleLogout}
             title="Sign Out"
             style={{
-              background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
+              background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
               padding: '0.375rem', borderRadius: '0.375rem', display: 'flex', flexShrink: 0,
             }}
           >
             <LogOut size={16} />
           </button>
+        </div>
+        {(isMobile || sidebarOpen) && (
+          <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingTop: '0.25rem' }}>
+            Powered by <a href="https://devtechnoz.com" target="_blank" rel="noopener noreferrer" style={{ color: '#ffffff', fontWeight: 600 }}>DevTechnoz</a>
+          </div>
         )}
       </div>
     </>
@@ -382,12 +392,34 @@ export default function SchoolShell({ children }) {
             }}>
               {initialsFor(currentUser?.email)}
             </div>
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.375rem 0.625rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--surface-border)',
+                backgroundColor: 'var(--surface-bg)',
+                color: 'var(--status-danger)',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 
         {/* Page Content Viewport */}
-        <main className="flex-1 px-4 py-5 sm:p-6 lg:p-8 overflow-y-auto">
-          {children}
+        <main className="flex-1 px-4 py-5 sm:p-6 lg:p-8 overflow-y-auto flex flex-col justify-between">
+          <div>{children}</div>
+          <Footer style={{ marginTop: '2rem' }} />
         </main>
       </div>
     </div>

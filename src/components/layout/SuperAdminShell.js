@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
+import Footer from '@/components/common/Footer';
 import {
   LayoutDashboard,
   Building2,
@@ -132,34 +133,45 @@ export default function SuperAdminShell({ children }) {
           padding: '1rem',
           borderTop: '1px solid #1e293b',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: sidebarOpen ? 'space-between' : 'center'
+          flexDirection: 'column',
+          gap: '0.5rem',
         }}>
-          {sidebarOpen ? (
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#ffffff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                {currentUser?.email || 'Super Admin'}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: sidebarOpen ? 'space-between' : 'center',
+          }}>
+            {sidebarOpen ? (
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#ffffff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  {currentUser?.email || 'Super Admin'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Platform Admin</div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Platform Admin</div>
+            ) : null}
+            <button
+              onClick={logout}
+              title="Sign Out"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#ef4444',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+          {sidebarOpen && (
+            <div style={{ fontSize: '0.6875rem', color: '#64748b', textAlign: 'center', paddingTop: '0.25rem' }}>
+              Powered by <a href="https://devtechnoz.com" target="_blank" rel="noopener noreferrer" style={{ color: '#ffffff', fontWeight: 600 }}>DevTechnoz</a>
             </div>
-          ) : null}
-          <button
-            onClick={logout}
-            title="Sign Out"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              padding: '0.5rem',
-              borderRadius: '0.375rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <LogOut size={18} />
-          </button>
+          )}
         </div>
       </aside>
 
@@ -233,12 +245,34 @@ export default function SuperAdminShell({ children }) {
             }}>
               SA
             </div>
+            <button
+              onClick={logout}
+              title="Sign Out"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.375rem 0.625rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--surface-border)',
+                backgroundColor: 'var(--surface-bg)',
+                color: 'var(--status-danger)',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 
         {/* Page Content Viewport */}
-        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
-          {children}
+        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>{children}</div>
+          <Footer style={{ marginTop: '2.5rem' }} />
         </main>
       </div>
     </div>
