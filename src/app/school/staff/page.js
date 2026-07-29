@@ -34,6 +34,7 @@ import {
   UserCheck,
   UserX,
   Phone,
+  CalendarCheck,
 } from 'lucide-react';
 import { useAlert } from '@/context/AlertContext';
 
@@ -336,14 +337,24 @@ export default function StaffManagementPage() {
                 Manage teaching and non-teaching personnel, department affiliations, roles, and activation status.
               </p>
             </div>
-            <Button
-              variant="primary"
-              icon={UserPlus}
-              onClick={() => setIsInviteModalOpen(true)}
-              style={{ padding: '0.625rem 1.25rem' }}
-            >
-              Invite Staff Member
-            </Button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <Button
+                variant="outline"
+                icon={CalendarCheck}
+                href="/school/staff/attendance"
+                style={{ padding: '0.625rem 1.25rem' }}
+              >
+                Take Attendance
+              </Button>
+              <Button
+                variant="primary"
+                icon={UserPlus}
+                onClick={() => setIsInviteModalOpen(true)}
+                style={{ padding: '0.625rem 1.25rem' }}
+              >
+                Invite Staff Member
+              </Button>
+            </div>
           </div>
         </div>
 

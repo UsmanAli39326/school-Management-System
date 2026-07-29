@@ -255,6 +255,7 @@ export default function SchoolDashboard() {
   const showClassesKpi = ['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role);
   const showCollectionKpi = ['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role);
   const showPendingKpi = ['SCHOOL_ADMIN', 'ACCOUNTANT'].includes(role);
+  const showAttendanceKpi = ['SCHOOL_ADMIN', 'RECEPTIONIST'].includes(role);
 
   const studentsMap = {};
   (studentsList || []).forEach(s => {
@@ -420,6 +421,25 @@ export default function SchoolDashboard() {
                   <div style={{ height: '1.5rem', width: '80px', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', marginTop: '0.25rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
                 ) : (
                   <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', marginTop: '0.125rem', lineHeight: 1.2 }}>{formatCurrency(pendingFees)}</div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* KPI 5: Today's Attendance */}
+          {showAttendanceKpi && (
+            <Card hoverable style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.875rem', backgroundColor: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.95)', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02)' }}>
+              <div style={{ width: '3rem', height: '3rem', borderRadius: '0.75rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Calendar size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Today's Attendance</div>
+                {loading ? (
+                  <div style={{ height: '1.5rem', width: '60px', backgroundColor: 'var(--surface-border)', borderRadius: '0.375rem', marginTop: '0.25rem', animation: 'pulse 1.5s infinite ease-in-out' }} />
+                ) : (
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.125rem', lineHeight: 1.2 }}>
+                    {attendanceData?.rate !== null ? `${attendanceData.rate}%` : 'N/A'}
+                  </div>
                 )}
               </div>
             </Card>
