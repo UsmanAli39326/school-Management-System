@@ -49,6 +49,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'All Students', href: '/school/students', icon: Users, roles: ['SCHOOL_ADMIN', 'RECEPTIONIST'] },
       { name: 'Admissions', href: '/school/students/admission', icon: UserPlus, roles: ['SCHOOL_ADMIN', 'RECEPTIONIST'] },
+      { name: 'Attendance', href: '/school/attendance', icon: ClipboardList, roles: ['SCHOOL_ADMIN', 'RECEPTIONIST'] },
       { name: 'Certificates', href: '/school/students/certificates', icon: FileBadge, roles: ['SCHOOL_ADMIN', 'RECEPTIONIST'] },
     ],
   },
@@ -65,6 +66,7 @@ const NAV_SECTIONS = [
     label: 'Administration',
     items: [
       { name: 'Staff', href: '/school/staff', icon: UserCog, roles: ['SCHOOL_ADMIN'] },
+      { name: 'Staff Attendance', href: '/school/staff/attendance', icon: Calendar, roles: ['SCHOOL_ADMIN'] },
       { name: 'School Settings', href: '/school/settings', icon: Settings, roles: ['SCHOOL_ADMIN'] },
     ],
   },
@@ -282,44 +284,7 @@ export default function SchoolShell({ children }) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--app-bg)' }}>
-      {/* Mobile Drawer Overlay Backdrop */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 lg:hidden transition-opacity"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
 
-      {/* Mobile Off-Canvas Drawer */}
-      <aside
-        className={`fixed top-0 left-0 bottom-0 w-72 bg-[var(--ink-900)] text-white z-50 flex flex-col transform transition-transform duration-300 ease-in-out lg:hidden ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        {renderSidebarContent(true)}
-      </aside>
-
-      {/* Desktop Sticky Sidebar Navigation */}
-      <aside
-        style={{
-          width: sidebarOpen ? '260px' : '76px',
-          flexShrink: 0,
-          backgroundColor: 'var(--ink-900)',
-          color: '#ffffff',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'width var(--transition-fast)',
-          zIndex: 40,
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          overflow: 'hidden',
-        }}
-        className="hidden lg:flex school-shell-sidebar"
-      >
-        {renderSidebarContent(false)}
-      </aside>
 
       {/* Main Page Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -339,23 +304,7 @@ export default function SchoolShell({ children }) {
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-            {/* Mobile Hamburger Toggle */}
-            <button
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open mobile menu"
-              className="lg:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-slate-100 transition-colors"
-            >
-              <Menu size={22} />
-            </button>
 
-            {/* Desktop Sidebar Toggle */}
-            <button
-              onClick={() => setSidebarOpen((v) => !v)}
-              aria-label="Toggle sidebar"
-              className="hidden lg:block p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-slate-100 transition-colors"
-            >
-              <Menu size={19} />
-            </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
               {schoolLogo && (
