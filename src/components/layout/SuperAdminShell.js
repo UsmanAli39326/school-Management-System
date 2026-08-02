@@ -270,9 +270,9 @@ export default function SuperAdminShell({ children }) {
         </header>
 
         {/* Page Content Viewport */}
-        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>{children}</div>
-          <Footer style={{ marginTop: '2.5rem' }} />
+        <main style={{ minHeight: 'calc(100vh - 64px)', flex: 1, padding: '2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1, marginBottom: '2rem' }}>{children}</div>
+          <Footer style={{ marginTop: 'auto' }} />
         </main>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import PageLoader from '@/components/common/PageLoader';
 
 export default function Home() {
   const { currentUser, role, loading } = useAuth();
@@ -28,11 +28,9 @@ export default function Home() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'var(--app-bg)',
-      color: 'var(--text-secondary)',
-      gap: '0.75rem'
+      width: '100%'
     }}>
-      <Loader2 className="animate-spin" size={28} style={{ color: 'var(--primary-color)' }} />
-      <span style={{ fontWeight: 500 }}>Redirecting to portal...</span>
+      <PageLoader text="Redirecting to portal..." />
     </div>
   );
 }

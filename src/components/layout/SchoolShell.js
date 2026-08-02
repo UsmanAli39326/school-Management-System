@@ -417,9 +417,12 @@ export default function SchoolShell({ children }) {
         </header>
 
         {/* Page Content Viewport */}
-        <main className="flex-1 px-4 py-5 sm:p-6 lg:p-8 overflow-y-auto flex flex-col justify-between">
-          <div>{children}</div>
-          <Footer style={{ marginTop: '2rem' }} />
+        <main
+          className="flex-1 px-4 py-5 sm:p-6 lg:p-8 overflow-y-auto"
+          style={{ minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+        >
+          <div style={{ flex: 1, marginBottom: '2rem' }}>{children}</div>
+          <Footer style={{ marginTop: 'auto' }} />
         </main>
       </div>
     </div>
