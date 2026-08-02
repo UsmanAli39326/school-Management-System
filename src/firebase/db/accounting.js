@@ -20,8 +20,8 @@ const EXPENSES_COL = 'expenses';
 // ----------------------------------------------------------------------
 
 export async function addExpense(schoolId, data, createdBy) {
-  const expenseId = `exp_${Date.now()}`;
-  const docRef = doc(db, EXPENSES_COL, expenseId);
+  const docRef = doc(collection(db, EXPENSES_COL));
+  const expenseId = docRef.id;
 
   const newExpense = {
     expenseId,

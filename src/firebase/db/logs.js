@@ -17,8 +17,8 @@ const COLLECTION_NAME = 'activity_logs';
  */
 export async function logActivity(action, details, userId = 'system', userName = 'System', schoolId = 'GLOBAL') {
   try {
-    const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const docRef = doc(db, COLLECTION_NAME, logId);
+    const docRef = doc(collection(db, COLLECTION_NAME));
+    const logId = docRef.id;
 
     const logEntry = {
       logId,

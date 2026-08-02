@@ -18,8 +18,8 @@ const SCHEDULES_COLLECTION = 'schedules';
  * Create a new schedule entry
  */
 export async function createSchedule(schoolId, scheduleData) {
-  const scheduleId = scheduleData.scheduleId || `sch_${Date.now()}`;
-  const docRef = doc(db, SCHEDULES_COLLECTION, scheduleId);
+  const docRef = scheduleData.scheduleId ? doc(db, SCHEDULES_COLLECTION, scheduleData.scheduleId) : doc(collection(db, SCHEDULES_COLLECTION));
+  const scheduleId = docRef.id;
 
   const newSchedule = {
     scheduleId,

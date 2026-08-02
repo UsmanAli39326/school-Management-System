@@ -22,8 +22,8 @@ const SESSIONS_COLLECTION = 'academic_sessions';
 // ----------------------------------------------------------------------
 
 export async function createSession(schoolId, sessionData) {
-  const sessionId = sessionData.sessionId || `session_${Date.now()}`;
-  const docRef = doc(db, SESSIONS_COLLECTION, sessionId);
+  const docRef = sessionData.sessionId ? doc(db, SESSIONS_COLLECTION, sessionData.sessionId) : doc(collection(db, SESSIONS_COLLECTION));
+  const sessionId = docRef.id;
 
   const newSession = {
     sessionId,
@@ -82,8 +82,8 @@ export async function updateSession(sessionId, updateData) {
 // ----------------------------------------------------------------------
 
 export async function createClass(schoolId, classData) {
-  const classId = classData.classId || `class_${Date.now()}`;
-  const docRef = doc(db, CLASSES_COLLECTION, classId);
+  const docRef = classData.classId ? doc(db, CLASSES_COLLECTION, classData.classId) : doc(collection(db, CLASSES_COLLECTION));
+  const classId = docRef.id;
 
   const newClass = {
     classId,
@@ -146,8 +146,8 @@ export async function deleteClass(classId) {
 // ----------------------------------------------------------------------
 
 export async function createSection(schoolId, classId, sectionData) {
-  const sectionId = sectionData.sectionId || `section_${Date.now()}`;
-  const docRef = doc(db, SECTIONS_COLLECTION, sectionId);
+  const docRef = sectionData.sectionId ? doc(db, SECTIONS_COLLECTION, sectionData.sectionId) : doc(collection(db, SECTIONS_COLLECTION));
+  const sectionId = docRef.id;
 
   const newSection = {
     sectionId,
@@ -204,8 +204,8 @@ export async function deleteSection(sectionId) {
 const SUBJECTS_COLLECTION = 'subjects';
 
 export async function createSubject(schoolId, classId, subjectData) {
-  const subjectId = subjectData.subjectId || `sub_${Date.now()}`;
-  const docRef = doc(db, SUBJECTS_COLLECTION, subjectId);
+  const docRef = subjectData.subjectId ? doc(db, SUBJECTS_COLLECTION, subjectData.subjectId) : doc(collection(db, SUBJECTS_COLLECTION));
+  const subjectId = docRef.id;
 
   const newSubject = {
     subjectId,

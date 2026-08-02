@@ -10,12 +10,17 @@ service cloud.firestore {
 
     // Function to check if user belongs to the same school as the document
     function isSameSchool(resourceData) {
-      return request.auth != null && request.auth.token.schoolId == resourceData.schoolId;
+      return request.auth != null && resourceData != null && request.auth.token.schoolId == resourceData.schoolId;
     }
 
     // Function to check if user is at least a SCHOOL_ADMIN for the given school
     function isSchoolAdmin(resourceData) {
       return isSameSchool(resourceData) && request.auth.token.role == 'SCHOOL_ADMIN';
+    }
+
+    // Function to check if user has Admin or Accountant role
+    function isFinanceUser(resourceData) {
+      return isSameSchool(resourceData) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'ACCOUNTANT');
     }
 
     // Global rule: Super Admins can read/write everything
@@ -38,35 +43,120 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       // Users in the same school can read other users in that school
       allow read: if isSameSchool(resource.data);
-      // Only School Admins can update/create users for their school
-      allow create, update, delete: if isSchoolAdmin(resource.data) || isSchoolAdmin(request.resource.data);
-      // Wait, we also allow setup-account to create profile initially.
-      // During setup, the user has NO claims yet. So we must allow them to create their own profile.
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // School Admins can update/delete users for their school
+      allow update, delete: if isSchoolAdmin(resource.data);
+      // School Admins can create users for their school
+      allow create: if isSchoolAdmin(request.resource.data);
+      // Self-registration profile creation during setup-account
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.role in ['SCHOOL_ADMIN', 'ACCOUNTANT', 'RECEPTIONIST', 'TEACHER', 'PENDING']
+        && request.resource.data.schoolId is string;
     }
 
     // Activity Logs
     match /activity_logs/{logId} {
       allow read: if isSameSchool(resource.data);
-      // Usually only backend creates logs, but if client creates them, they must belong to the school
-      allow create: if isSameSchool(request.resource.data) || request.auth.uid == request.resource.data.userId;
+      allow create: if isSameSchool(request.resource.data) || (request.auth != null && request.auth.uid == request.resource.data.userId);
     }
 
     // Invoices
     match /invoices/{invoiceId} {
       allow read: if isSameSchool(resource.data);
-      allow create, update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'ACCOUNTANT');
+      allow create: if isFinanceUser(request.resource.data);
+      allow update, delete: if isFinanceUser(resource.data);
     }
 
     // Students
     match /students/{studentId} {
       allow read: if isSameSchool(resource.data);
-      allow create, update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'RECEPTIONIST');
+      allow create: if isSameSchool(request.resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'RECEPTIONIST');
+      allow update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'RECEPTIONIST');
     }
 
-    // Default rule for all other collections to enforce tenant isolation
+    // Fee Structures, Payments, Student Ledgers, Accounting (Expenses)
+    match /fee_structures/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isFinanceUser(request.resource.data);
+      allow update, delete: if isFinanceUser(resource.data);
+    }
+    match /payments/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isFinanceUser(request.resource.data);
+      allow update, delete: if isFinanceUser(resource.data);
+    }
+    match /student_ledgers/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isFinanceUser(request.resource.data);
+      allow update, delete: if isFinanceUser(resource.data);
+    }
+    match /expenses/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isFinanceUser(request.resource.data);
+      allow update, delete: if isFinanceUser(resource.data);
+    }
+
+    // Staff & Staff Invitations
+    match /staff/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+    match /staff_invitations/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+
+    // Grades
+    match /grades/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSameSchool(request.resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'TEACHER');
+      allow update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'TEACHER');
+    }
+
+    // Schedules & Academic Configuration (Sessions, Classes, Sections, Subjects)
+    match /schedules/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+    match /academic_sessions/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+    match /classes/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+    match /sections/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+    match /subjects/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSchoolAdmin(request.resource.data);
+      allow update, delete: if isSchoolAdmin(resource.data);
+    }
+
+    // Student & Staff Attendance
+    match /student_attendance/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSameSchool(request.resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'TEACHER' || request.auth.token.role == 'RECEPTIONIST');
+      allow update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'TEACHER' || request.auth.token.role == 'RECEPTIONIST');
+    }
+    match /staff_attendance/{id} {
+      allow read: if isSameSchool(resource.data);
+      allow create: if isSameSchool(request.resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'RECEPTIONIST');
+      allow update, delete: if isSameSchool(resource.data) && (request.auth.token.role == 'SCHOOL_ADMIN' || request.auth.token.role == 'RECEPTIONIST');
+    }
+
+    // Strict fallback catch-all rule (read-only for same school, no unhandled collection writes)
     match /{collectionName}/{docId} {
-      allow read, write: if isSameSchool(resource.data);
+      allow read: if isSameSchool(resource.data);
     }
   }
 }

@@ -19,8 +19,8 @@ const COLLECTION_NAME = 'schools';
  * Create a new school document in Firestore
  */
 export async function createSchool(schoolData) {
-  const schoolId = schoolData.schoolId || `school_${Date.now()}`;
-  const docRef = doc(db, COLLECTION_NAME, schoolId);
+  const docRef = schoolData.schoolId ? doc(db, COLLECTION_NAME, schoolData.schoolId) : doc(collection(db, COLLECTION_NAME));
+  const schoolId = docRef.id;
 
   const newSchool = {
     schoolId,

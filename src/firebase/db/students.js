@@ -18,8 +18,8 @@ const COLLECTION_NAME = 'students';
  * Admit a new student to the school
  */
 export async function admitStudent(schoolId, studentData) {
-  const studentId = studentData.studentId || `student_${Date.now()}`;
-  const docRef = doc(db, COLLECTION_NAME, studentId);
+  const docRef = studentData.studentId ? doc(db, COLLECTION_NAME, studentData.studentId) : doc(collection(db, COLLECTION_NAME));
+  const studentId = docRef.id;
 
   const newStudent = {
     studentId,

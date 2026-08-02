@@ -9,7 +9,8 @@ import {
   query,
   where,
   serverTimestamp,
-  writeBatch
+  writeBatch,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../config';
 
@@ -23,8 +24,8 @@ const LEDGERS_COL = 'student_ledgers';
 // ----------------------------------------------------------------------
 
 export async function createFeeStructure(schoolId, data) {
-  const structureId = data.structureId || `fs_${Date.now()}`;
-  const docRef = doc(db, STRUCTURES_COL, structureId);
+  const docRef = data.structureId ? doc(db, STRUCTURES_COL, data.structureId) : doc(collection(db, STRUCTURES_COL));
+  const structureId = docRef.id;
 
   const newStructure = {
     structureId,
@@ -105,8 +106,8 @@ export async function generateInvoicesForClass(schoolId, classId, students, feeS
         schoolId,
         invoiceNumber: `INV-${Date.now()}-${Math.floor(Math.random()*1000)}`,
         studentId: student.id,
-        sessionId: sessionData?.id || student.sessionId || '',
-        sessionName: sessionData?.name || student.sessionName || '',
+        sessionId: student.sessionId || student.academicDetails?.sessionId || '',
+        sessionName: student.sessionName || student.academicDetails?.sessionName || '',
         feeMonth,
         feeType: fs.feeType,
         amount: invoiceAmount,
@@ -176,90 +177,112 @@ export async function getInvoices(schoolId, studentId = null) {
 // ----------------------------------------------------------------------
 
 export async function collectPayment(schoolId, invoice, paymentDetails) {
-  const batch = writeBatch(db);
+  return await runTransaction(db, async (transaction) => {
+    const invoiceRef = doc(db, INVOICES_COL, invoice.id);
+    const invoiceSnap = await transaction.get(invoiceRef);
+    if (!invoiceSnap.exists()) {
+      throw new Error('Invoice not found');
+    }
+    const latestInvoice = invoiceSnap.data();
 
-  const paymentId = `pay_${Date.now()}`;
-  const paymentRef = doc(db, PAYMENTS_COL, paymentId);
-  
-  const discountAmt = Number(paymentDetails.discount) || 0;
-  const fineAmt = Number(paymentDetails.fine) || 0;
-  const paidAmt = Number(paymentDetails.paidAmount) || 0;
-  
-  // Calculate new balances
-  const newPayable = invoice.amount - discountAmt + fineAmt;
-  const totalPaidNow = invoice.paidAmount + paidAmt;
-  const newBalance = newPayable - totalPaidNow;
-  
-  let newStatus = invoice.status;
-  if (newBalance <= 0) {
-    newStatus = 'PAID';
-  } else if (totalPaidNow > 0) {
-    newStatus = 'PARTIAL';
-  }
+    const paymentRef = doc(collection(db, PAYMENTS_COL));
+    const paymentId = paymentRef.id;
+    
+    const discountAmt = Number(paymentDetails.discount) || 0;
+    const fineAmt = Number(paymentDetails.fine) || 0;
+    const paidAmt = Number(paymentDetails.paidAmount) || 0;
 
-  // 1. Create Payment Record
-  const newPayment = {
-    paymentId,
-    schoolId,
-    invoiceId: invoice.id,
-    studentId: invoice.studentId,
-    paidAmount: paidAmt,
-    paymentDate: serverTimestamp(),
-    paymentMethod: paymentDetails.paymentMethod || 'CASH',
-    receiptNumber: `REC-${Date.now()}`,
-    remarks: paymentDetails.remarks || '',
-    createdAt: serverTimestamp(),
-  };
-  batch.set(paymentRef, newPayment);
+    const baseAmount = latestInvoice.amount || invoice.amount || 0;
+    const currentPaidAmount = Number(latestInvoice.paidAmount) || 0;
+    const currentDiscount = Number(latestInvoice.discount) || 0;
+    const currentFine = Number(latestInvoice.fine) || 0;
+    
+    // Calculate new balances using latest database state
+    const newPayable = baseAmount - discountAmt + fineAmt;
+    const totalPaidNow = currentPaidAmount + paidAmt;
+    const newBalance = newPayable - totalPaidNow;
+    
+    let newStatus = latestInvoice.status;
+    if (newBalance <= 0) {
+      newStatus = 'PAID';
+    } else if (totalPaidNow > 0) {
+      newStatus = 'PARTIAL';
+    }
 
-  // 2. Update Invoice
-  const invoiceRef = doc(db, INVOICES_COL, invoice.id);
-  batch.update(invoiceRef, {
-    discount: discountAmt,
-    fine: fineAmt,
-    payableAmount: newPayable,
-    paidAmount: totalPaidNow,
-    remainingBalance: newBalance,
-    status: newStatus,
-  });
+    // 1. Create Payment Record
+    const newPayment = {
+      paymentId,
+      schoolId,
+      invoiceId: invoice.id,
+      studentId: invoice.studentId,
+      paidAmount: paidAmt,
+      paymentDate: serverTimestamp(),
+      paymentMethod: paymentDetails.paymentMethod || 'CASH',
+      receiptNumber: `REC-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      remarks: paymentDetails.remarks || '',
+      createdAt: serverTimestamp(),
+    };
+    transaction.set(paymentRef, newPayment);
 
-  // 3. Update Ledger
-  const ledgerId = `ledg_pay_${paymentId}`;
-  const ledgerRef = doc(db, LEDGERS_COL, ledgerId);
-  batch.set(ledgerRef, {
-    ledgerId,
-    schoolId,
-    studentId: invoice.studentId,
-    date: serverTimestamp(),
-    transactionType: 'PAYMENT',
-    description: `Payment for Invoice ${invoice.invoiceNumber} (${paymentDetails.paymentMethod})`,
-    debit: 0,
-    credit: paidAmt,
-    invoiceId: invoice.id,
-  });
-
-  if (discountAmt > invoice.discount) {
-    const diff = discountAmt - invoice.discount;
-    const lId = `ledg_disc_${paymentId}`;
-    batch.set(doc(db, LEDGERS_COL, lId), {
-      ledgerId: lId, schoolId, studentId: invoice.studentId, date: serverTimestamp(),
-      transactionType: 'DISCOUNT', description: `Discount applied to Invoice ${invoice.invoiceNumber}`,
-      debit: 0, credit: diff, invoiceId: invoice.id,
+    // 2. Update Invoice
+    transaction.update(invoiceRef, {
+      discount: discountAmt,
+      fine: fineAmt,
+      payableAmount: newPayable,
+      paidAmount: totalPaidNow,
+      remainingBalance: newBalance,
+      status: newStatus,
     });
-  }
 
-  if (fineAmt > invoice.fine) {
-    const diff = fineAmt - invoice.fine;
-    const lId = `ledg_fine_${paymentId}`;
-    batch.set(doc(db, LEDGERS_COL, lId), {
-      ledgerId: lId, schoolId, studentId: invoice.studentId, date: serverTimestamp(),
-      transactionType: 'FINE', description: `Fine added to Invoice ${invoice.invoiceNumber}`,
-      debit: diff, credit: 0, invoiceId: invoice.id,
+    // 3. Update Ledger
+    const ledgerRef = doc(collection(db, LEDGERS_COL));
+    const ledgerId = ledgerRef.id;
+    transaction.set(ledgerRef, {
+      ledgerId,
+      schoolId,
+      studentId: invoice.studentId,
+      date: serverTimestamp(),
+      transactionType: 'PAYMENT',
+      description: `Payment for Invoice ${latestInvoice.invoiceNumber || invoice.invoiceNumber} (${paymentDetails.paymentMethod})`,
+      debit: 0,
+      credit: paidAmt,
+      invoiceId: invoice.id,
     });
-  }
 
-  await batch.commit();
-  return { id: paymentId, ...newPayment };
+    if (discountAmt > currentDiscount) {
+      const diff = discountAmt - currentDiscount;
+      const discLedgerRef = doc(collection(db, LEDGERS_COL));
+      transaction.set(discLedgerRef, {
+        ledgerId: discLedgerRef.id,
+        schoolId,
+        studentId: invoice.studentId,
+        date: serverTimestamp(),
+        transactionType: 'DISCOUNT',
+        description: `Discount applied to Invoice ${latestInvoice.invoiceNumber || invoice.invoiceNumber}`,
+        debit: 0,
+        credit: diff,
+        invoiceId: invoice.id,
+      });
+    }
+
+    if (fineAmt > currentFine) {
+      const diff = fineAmt - currentFine;
+      const fineLedgerRef = doc(collection(db, LEDGERS_COL));
+      transaction.set(fineLedgerRef, {
+        ledgerId: fineLedgerRef.id,
+        schoolId,
+        studentId: invoice.studentId,
+        date: serverTimestamp(),
+        transactionType: 'FINE',
+        description: `Fine added to Invoice ${latestInvoice.invoiceNumber || invoice.invoiceNumber}`,
+        debit: diff,
+        credit: 0,
+        invoiceId: invoice.id,
+      });
+    }
+
+    return { id: paymentId, ...newPayment };
+  });
 }
 
 export async function getStudentLedger(schoolId, studentId) {
